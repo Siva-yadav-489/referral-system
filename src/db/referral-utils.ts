@@ -1,6 +1,6 @@
 import { db } from "./index";
 import * as schema from "./schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
 /**
@@ -22,7 +22,7 @@ function generateRandomCode(length: number = 8): string {
  * with a fallback retry mechanism.
  */
 export async function generateCollisionProofReferralCode(
-  dbClient: typeof db = db
+  dbClient: typeof db = db,
 ): Promise<string> {
   const maxRetries = 10;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -44,14 +44,16 @@ export async function generateCollisionProofReferralCode(
   return `REF-${timestampPart}-${randomPart}`;
 }
 
+import { processReferralMilestone } from "@/lib/referralService";
+
 /**
- * Ground Rules #1, #2, #3, #4: Atomic Referral Processing
- * 1. Atomic Transactions: Executed inside a single db.transaction().
- * 2. Prevent Self-Referral: Ensures referrer ID != new user ID.
- * 3. Single Referral Enforcement: Ensures new user does not already have referredById.
- * 4. Referral Code Validation: Validates ref code exists and resolves to active user.
+ * Legacy wrapper function for processing referral rewards.
+ * Uses uniqueReferralCode and processReferralMilestone.
  */
-export async function processReferralReward(newUserId: string, refCode: string): Promise<boolean> {
+export async function processReferralReward(
+  newUserId: string,
+  refCode: string,
+): Promise<boolean> {
   if (!refCode || typeof refCode !== "string") {
     return false;
   }
@@ -62,69 +64,38 @@ export async function processReferralReward(newUserId: string, refCode: string):
   }
 
   try {
-    return await db.transaction(async (tx) => {
-      // Ground Rule #4: Referral Code Validation
-      const [referrer] = await tx
-        .select()
-        .from(schema.user)
-        .where(eq(schema.user.referralCode, trimmedRefCode))
-        .limit(1);
+    const [referrer] = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.referralCode, trimmedRefCode))
+      .limit(1);
 
-      if (!referrer) {
-        console.warn(`[Referral System] Invalid referral code provided: ${trimmedRefCode}`);
-        return false;
-      }
+    if (!referrer || referrer.id === newUserId) {
+      return false;
+    }
 
-      // Ground Rule #2: Prevent Self-Referral
-      if (referrer.id === newUserId) {
-        console.warn(`[Referral System] Self-referral attempt blocked for user ID: ${newUserId}`);
-        return false;
-      }
+    const [existingReferral] = await db
+      .select()
+      .from(schema.referrals)
+      .where(eq(schema.referrals.refereeId, newUserId))
+      .limit(1);
 
-      // Fetch new user to verify current referral status
-      const [newUser] = await tx
-        .select()
-        .from(schema.user)
-        .where(eq(schema.user.id, newUserId))
-        .limit(1);
+    if (!existingReferral) {
+      await db.insert(schema.referrals).values({
+        id: `ref_${crypto.randomUUID()}`,
+        referrerId: referrer.id,
+        refereeId: newUserId,
+        status: "PENDING",
+      });
+    }
 
-      if (!newUser) {
-        console.warn(`[Referral System] Target user not found: ${newUserId}`);
-        return false;
-      }
-
-      // Ground Rule #3: Single Referral Enforcement
-      if (newUser.referredById !== null && newUser.referredById !== undefined) {
-        console.warn(`[Referral System] User ${newUserId} has already been referred previously.`);
-        return false;
-      }
-
-      // Ground Rule #1: Atomic updates inside single transaction
-      // 1. Update referee: set referredById to referrer.id and add 10 points
-      await tx
-        .update(schema.user)
-        .set({
-          referredById: referrer.id,
-          points: sql`${schema.user.points} + 10`,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.user.id, newUserId));
-
-      // 2. Update referrer: add 10 points
-      await tx
-        .update(schema.user)
-        .set({
-          points: sql`${schema.user.points} + 10`,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.user.id, referrer.id));
-
-      console.log(`[Referral System] Successfully awarded 10 points to referrer (${referrer.id}) and referee (${newUserId}).`);
-      return true;
-    });
+    await processReferralMilestone(newUserId, "SIGNUP");
+    return true;
   } catch (error) {
-    console.error("[Referral System] Failed to process referral reward inside transaction:", error);
-    // Transaction rolled back automatically by Drizzle on throw
+    console.error(
+      "[Referral System] Failed to process referral reward:",
+      error,
+    );
     return false;
   }
 }

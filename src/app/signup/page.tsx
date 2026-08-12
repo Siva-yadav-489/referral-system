@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { validateReferralCode } from "@/app/actions/referral";
+import { validateReferralCode, setReferralCookie } from "@/app/actions/referral";
 import Link from "next/link";
 import {
   Gift,
@@ -13,43 +13,61 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 function SignupFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const initialRefCode = searchParams.get("ref") || searchParams.get("referral");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
   const [refCodeError, setRefCodeError] = useState<string | null>(null);
   const [refCodeSuccess, setRefCodeSuccess] = useState<boolean>(false);
-  const [isValidatingRef, setIsValidatingRef] = useState(false);
+  const [isValidatingRef, setIsValidatingRef] = useState(() => !!initialRefCode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ref guard to prevent infinite re-validation loops when Server Action cookie mutation triggers route revalidation
+  const validatedRef = useRef<string | null>(null);
+
   useEffect(() => {
     const code = searchParams.get("ref") || searchParams.get("referral");
-    if (code) {
-      const cleanCode = code.trim().toUpperCase();
-      setIsValidatingRef(true);
-      validateReferralCode(cleanCode)
-        .then((isValid) => {
-          setIsValidatingRef(false);
-          if (isValid) {
-            setRefCode(cleanCode);
-            setRefCodeSuccess(true);
-          } else {
-            // Invalid referral code in URL -> Redirect to home with error parameter
-            router.push("/?error=invalid_referral");
-          }
-        })
-        .catch(() => {
-          setIsValidatingRef(false);
+    if (!code) return;
+
+    const cleanCode = code.trim().toUpperCase();
+    // Skip if we already completed validation for this exact referral code
+    if (validatedRef.current === cleanCode) return;
+
+    let cancelled = false;
+    validateReferralCode(cleanCode)
+      .then(async (isValid) => {
+        if (cancelled) return;
+        validatedRef.current = cleanCode;
+        if (isValid) {
+          setRefCode(cleanCode);
+          setRefCodeSuccess(true);
+          await setReferralCookie(cleanCode);
+        } else {
           router.push("/?error=invalid_referral");
-        });
-    }
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        router.push("/?error=invalid_referral");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsValidatingRef(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,13 +90,16 @@ function SignupFormContent() {
         }
       }
 
-      const res = await authClient.signUp.email({
+      const signupData = {
         email,
         password,
         name,
-        // Pass ref code into signup body for database hook to handle atomically
         ...(refCode ? { ref: refCode.trim().toUpperCase() } : {}),
-      } as any);
+      };
+
+      const res = await authClient.signUp.email(
+        signupData as Parameters<typeof authClient.signUp.email>[0]
+      );
 
       if (res.error) {
         setError(
@@ -87,24 +108,14 @@ function SignupFormContent() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      setError(err?.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
-
-  if (isValidatingRef) {
-    return (
-      <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl text-center">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-zinc-300 font-medium">
-          Validating referral link...
-        </p>
-        <p className="text-xs text-zinc-500 mt-1">Please wait a moment</p>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
@@ -119,25 +130,6 @@ function SignupFormContent() {
           Join today and earn referral rewards
         </p>
       </div>
-
-      {/* Commented out as requested: do not display ref code badge based on URL alone
-      {refCode && (
-        <div className="mb-6 p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div className="text-xs">
-            <span className="text-emerald-300 font-semibold">
-              Referral Applied:{" "}
-            </span>
-            <code className="bg-emerald-900/50 px-1.5 py-0.5 rounded text-emerald-200 font-mono font-bold">
-              {refCode}
-            </code>
-            <p className="text-emerald-400/80 mt-0.5">
-              You and your referrer will receive 10 bonus points!
-            </p>
-          </div>
-        </div>
-      )}
-      */}
 
       {error && (
         <div className="mb-6 p-3.5 bg-red-950/50 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-300 text-sm">
@@ -204,11 +196,15 @@ function SignupFormContent() {
             <label className="block text-xs font-medium text-zinc-400">
               Referral Code (Optional)
             </label>
-            {refCodeSuccess && (
+            {isValidatingRef ? (
+              <span className="text-[11px] text-indigo-400 font-semibold flex items-center gap-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Validating link...
+              </span>
+            ) : refCodeSuccess ? (
               <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Valid code (+10 pts)
               </span>
-            )}
+            ) : null}
           </div>
           <input
             type="text"
@@ -229,6 +225,7 @@ function SignupFormContent() {
               if (isValid) {
                 setRefCodeSuccess(true);
                 setRefCodeError(null);
+                await setReferralCookie(refCode.trim());
               } else {
                 setRefCodeSuccess(false);
                 setRefCodeError(

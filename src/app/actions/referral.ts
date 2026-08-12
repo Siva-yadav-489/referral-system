@@ -2,15 +2,18 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { user } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { headers } from "next/headers";
+import { user, referrals, referralHistories } from "@/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
+import { headers, cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 
 export interface RefereeInfo {
   id: string;
   name: string;
   email: string;
+  status: "PENDING" | "PARTIALLY_REWARDED" | "COMPLETED";
   createdAt: Date;
+  milestonesCompleted: string[];
 }
 
 export interface ReferralDashboardData {
@@ -20,22 +23,12 @@ export interface ReferralDashboardData {
 }
 
 /**
- * Secure Server Action to fetch the current authenticated user's referral dashboard data.
- * Returns only the necessary data: user points, unique referralCode, and list of referees (name, email, signup date).
+ * Internal function to fetch referral data from DB. Wrapped with unstable_cache below.
  */
-export async function getReferralDashboardData(): Promise<ReferralDashboardData> {
-  const reqHeaders = await headers();
-  const session = await auth.api.getSession({
-    headers: reqHeaders,
-  });
-
-  if (!session || !session.user) {
-    throw new Error("Unauthorized: Please sign in to access your referral dashboard.");
-  }
-
-  const userId = session.user.id;
-
-  // 1. Fetch user's current points and referral code
+async function fetchUserDashboardDataRaw(
+  userId: string,
+): Promise<ReferralDashboardData> {
+  // 1. Fetch user's current points and unique referral code
   const [currentUser] = await db
     .select({
       points: user.points,
@@ -49,17 +42,48 @@ export async function getReferralDashboardData(): Promise<ReferralDashboardData>
     throw new Error("User record not found.");
   }
 
-  // 2. Fetch referees list (selective projection: only name, email, createdAt)
-  const referees = await db
+  // 2. Fetch referrals where referrerId is current user
+  const userReferrals = await db
     .select({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
+      referralId: referrals.id,
+      refereeId: referrals.refereeId,
+      status: referrals.status,
+      refereeName: user.name,
+      refereeEmail: user.email,
+      refereeCreatedAt: user.createdAt,
     })
-    .from(user)
-    .where(eq(user.referredById, userId))
-    .orderBy(desc(user.createdAt));
+    .from(referrals)
+    .innerJoin(user, eq(referrals.refereeId, user.id))
+    .where(eq(referrals.referrerId, userId))
+    .orderBy(desc(referrals.createdAt));
+
+  // 3. Fetch milestone histories for these referrals
+  const referralIds = userReferrals.map((r) => r.referralId);
+  const histories =
+    referralIds.length > 0
+      ? await db
+          .select()
+          .from(referralHistories)
+          .where(inArray(referralHistories.referralId, referralIds))
+      : [];
+
+  // Group milestones by referralId
+  const milestonesByReferralId: Record<string, string[]> = {};
+  histories.forEach((h) => {
+    if (!milestonesByReferralId[h.referralId]) {
+      milestonesByReferralId[h.referralId] = [];
+    }
+    milestonesByReferralId[h.referralId].push(h.milestone);
+  });
+
+  const referees: RefereeInfo[] = userReferrals.map((r) => ({
+    id: r.refereeId,
+    name: r.refereeName,
+    email: r.refereeEmail,
+    status: r.status,
+    createdAt: r.refereeCreatedAt,
+    milestonesCompleted: milestonesByReferralId[r.referralId] || [],
+  }));
 
   return {
     points: currentUser.points,
@@ -69,8 +93,36 @@ export async function getReferralDashboardData(): Promise<ReferralDashboardData>
 }
 
 /**
+ * Secure cached Server Action to fetch referral dashboard data using unstable_cache and revalidateTag
+ */
+export async function getReferralDashboardData(): Promise<ReferralDashboardData> {
+  const reqHeaders = await headers();
+  const session = await auth.api.getSession({
+    headers: reqHeaders,
+  });
+
+  if (!session || !session.user) {
+    throw new Error(
+      "Unauthorized: Please sign in to access your referral dashboard.",
+    );
+  }
+
+  const userId = session.user.id;
+
+  const getCachedData = unstable_cache(
+    async (uId: string) => fetchUserDashboardDataRaw(uId),
+    [`dashboard-data-${userId}`],
+    {
+      tags: [`points:${userId}`, `referrals:${userId}`],
+      revalidate: 60,
+    },
+  );
+
+  return getCachedData(userId);
+}
+
+/**
  * Server Action to validate if a referral code exists in the database.
- * Returns true if valid, false otherwise.
  */
 export async function validateReferralCode(code: string): Promise<boolean> {
   if (!code || typeof code !== "string") return false;
@@ -91,3 +143,22 @@ export async function validateReferralCode(code: string): Promise<boolean> {
   }
 }
 
+/**
+ * Server Action to store referral code in HTTP cookies
+ */
+export async function setReferralCookie(code: string): Promise<boolean> {
+  if (!code) return false;
+  const cleanCode = code.trim().toUpperCase();
+  const isValid = await validateReferralCode(cleanCode);
+  if (isValid) {
+    const cookieStore = await cookies();
+    cookieStore.set("referral_code", cleanCode, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: true,
+      sameSite: "lax",
+    });
+    return true;
+  }
+  return false;
+}

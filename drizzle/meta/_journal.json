@@ -8,6 +8,13 @@
       "when": 1786423757978,
       "tag": "0000_lively_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786466557027,
+      "tag": "0001_low_spiral",
+      "breakpoints": true
     }
   ]
 }
