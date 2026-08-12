@@ -3,13 +3,18 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { validateReferralCode, setReferralCookie } from "@/app/actions/referral";
+import {
+  validateReferralCode,
+  setReferralCookie,
+} from "@/app/actions/referral";
 import Link from "next/link";
 import {
   Gift,
   User,
   Mail,
   Lock,
+  Eye,
+  EyeOff,
   ArrowRight,
   CheckCircle2,
   AlertCircle,
@@ -20,14 +25,18 @@ function SignupFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const initialRefCode = searchParams.get("ref") || searchParams.get("referral");
+  const initialRefCode =
+    searchParams.get("ref") || searchParams.get("referral");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [refCode, setRefCode] = useState("");
   const [refCodeError, setRefCodeError] = useState<string | null>(null);
   const [refCodeSuccess, setRefCodeSuccess] = useState<boolean>(false);
-  const [isValidatingRef, setIsValidatingRef] = useState(() => !!initialRefCode);
+  const [isValidatingRef, setIsValidatingRef] = useState(
+    () => !!initialRefCode,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,7 +107,7 @@ function SignupFormContent() {
       };
 
       const res = await authClient.signUp.email(
-        signupData as Parameters<typeof authClient.signUp.email>[0]
+        signupData as Parameters<typeof authClient.signUp.email>[0],
       );
 
       if (res.error) {
@@ -151,7 +160,7 @@ function SignupFormContent() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Jane Doe"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-11 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
           </div>
         </div>
@@ -168,7 +177,7 @@ function SignupFormContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="jane@example.com"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-11 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
           </div>
         </div>
@@ -180,14 +189,26 @@ function SignupFormContent() {
           <div className="relative">
             <Lock className="absolute left-3.5 top-3 w-4 h-4 text-zinc-500" />
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-11 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 hover:text-zinc-200 focus:outline-none"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -198,7 +219,8 @@ function SignupFormContent() {
             </label>
             {isValidatingRef ? (
               <span className="text-[11px] text-indigo-400 font-semibold flex items-center gap-1">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Validating link...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Validating
+                link...
               </span>
             ) : refCodeSuccess ? (
               <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
@@ -238,8 +260,8 @@ function SignupFormContent() {
               refCodeError
                 ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 : refCodeSuccess
-                ? "border-emerald-500/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                : "border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  ? "border-emerald-500/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  : "border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             }`}
           />
           {refCodeError && (

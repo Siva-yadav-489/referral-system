@@ -241,7 +241,7 @@ export default function OccupancyDashboard() {
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
             <p className="text-sm text-zinc-400">
-              Loading live occupancy database...
+              Loading occupancy database...
             </p>
           </div>
         ) : floors.length === 0 ? (
