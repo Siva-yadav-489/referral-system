@@ -23,6 +23,11 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "USER",
+        required: false,
+      },
       points: {
         type: "number",
         defaultValue: 0,
@@ -44,6 +49,7 @@ export const auth = betterAuth({
             data: {
               ...userData,
               referralCode,
+              role: "USER",
               points: 0,
             },
           };

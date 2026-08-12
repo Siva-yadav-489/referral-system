@@ -15,6 +15,20 @@
       "when": 1786466557027,
       "tag": "0001_low_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786510291065,
+      "tag": "0002_motionless_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786532632269,
+      "tag": "0003_sudden_tombstone",
+      "breakpoints": true
     }
   ]
 }

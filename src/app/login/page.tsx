@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { LogIn, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard/occupancy";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,10 +29,12 @@ export default function LoginPage() {
       if (res.error) {
         setError(res.error.message || "Invalid credentials. Please try again.");
       } else {
-        router.push("/dashboard");
+        router.push(callbackUrl);
       }
-    } catch (err: any) {
-      setError(err?.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -43,8 +47,12 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-4">
             <LogIn className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back</h1>
-          <p className="text-sm text-zinc-400 mt-1">Sign in to your referral dashboard</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-sm text-zinc-400 mt-1">
+            Sign in to your referral dashboard
+          </p>
         </div>
 
         {error && (
@@ -56,7 +64,9 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Email Address</label>
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              Email Address
+            </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-3 w-4 h-4 text-zinc-500" />
               <input
@@ -71,7 +81,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Password</label>
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+              Password
+            </label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-3 w-4 h-4 text-zinc-500" />
               <input
@@ -102,12 +114,29 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-xs text-zinc-400">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-indigo-400 hover:underline font-medium">
+          {"Don't have an account?"}
+          <Link
+            href="/signup"
+            className="text-indigo-400 hover:underline font-medium"
+          >
             Create Account
           </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
