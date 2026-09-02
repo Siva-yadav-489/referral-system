@@ -23,7 +23,6 @@ import {
   Trash2,
   Save,
   Edit3,
-  Sparkles,
   Loader2,
   BedSingle,
   Users,
@@ -128,13 +127,13 @@ function mapOccupantServerError(msg: string): OccupantFieldErrors | null {
 
 function inputErrorClass(hasError: boolean) {
   return hasError
-    ? "border-rose-500/60 focus:border-rose-500"
-    : "border-zinc-800 focus:border-indigo-500";
+    ? "border-destructive focus:border-destructive text-destructive"
+    : "border-input focus:border-primary";
 }
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="text-[10px] text-rose-400 mt-0.5">{message}</p>;
+  return <p className="text-[10px] text-destructive mt-0.5">{message}</p>;
 }
 
 export default function AdminPage() {
@@ -516,8 +515,10 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
-        <p className="text-sm text-zinc-400">Loading occupancy database...</p>
+        <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+        <p className="text-sm text-muted-foreground">
+          Loading occupancy database...
+        </p>
       </div>
     );
   }
@@ -534,17 +535,14 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border rounded-xl p-6 shadow-xs">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5" /> Admin Control
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             PG Occupancy Administration
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Manage floors, rooms, and occupants individually. Seed sample data
             for a fresh layout, or edit entities one at a time.
           </p>
@@ -553,48 +551,52 @@ export default function AdminPage() {
 
       {/* Summary Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between text-zinc-400 mb-1 text-xs">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-1 text-xs">
             <span>Total Floors</span>
-            <Building2 className="w-4 h-4 text-indigo-400" />
+            <Building2 className="w-4 h-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-black text-white">{totalFloors}</div>
+          <div className="text-2xl font-bold text-foreground">
+            {totalFloors}
+          </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between text-zinc-400 mb-1 text-xs">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-1 text-xs">
             <span>Total Rooms</span>
-            <DoorOpen className="w-4 h-4 text-violet-400" />
+            <DoorOpen className="w-4 h-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-black text-white">{totalRooms}</div>
+          <div className="text-2xl font-bold text-foreground">{totalRooms}</div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between text-zinc-400 mb-1 text-xs">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-1 text-xs">
             <span>Total Beds</span>
-            <BedSingle className="w-4 h-4 text-amber-400" />
+            <BedSingle className="w-4 h-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-black text-white">{totalBeds}</div>
+          <div className="text-2xl font-bold text-foreground">{totalBeds}</div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between text-zinc-400 mb-1 text-xs">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xs">
+          <div className="flex items-center justify-between text-muted-foreground mb-1 text-xs">
             <span>Occupants</span>
-            <Users className="w-4 h-4 text-emerald-400" />
+            <Users className="w-4 h-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-black text-white">{totalOccupants}</div>
+          <div className="text-2xl font-bold text-foreground">
+            {totalOccupants}
+          </div>
         </div>
       </div>
 
       {/* VIEW MODE */}
       {!isEditing && floors.length > 0 && (
-        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-foreground">
                 Current PG Building Layout
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Click &ldquo;Edit Layout&rdquo; to modify individual floors,
                 rooms, or occupants.
               </p>
@@ -603,7 +605,7 @@ export default function AdminPage() {
               <button
                 onClick={handleDeleteLayout}
                 disabled={deletingLayout}
-                className="inline-flex items-center gap-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-semibold px-4 py-2 rounded-xl transition-all border border-rose-500/40 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-semibold px-4 py-2 rounded-lg transition-colors border border-destructive/20 cursor-pointer disabled:opacity-50"
               >
                 {deletingLayout ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -615,7 +617,7 @@ export default function AdminPage() {
 
               <button
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
               >
                 <Edit3 className="w-4 h-4" /> Edit Layout
               </button>
@@ -626,14 +628,14 @@ export default function AdminPage() {
             {floors.map((floor) => (
               <div
                 key={floor.id}
-                className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-4"
+                className="bg-muted/40 border border-border rounded-xl p-5 space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-indigo-400" />
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
                     Floor {floor.floorNumber}
                   </h3>
-                  <span className="text-xs text-indigo-300 bg-indigo-950/80 border border-indigo-500/30 px-3 py-1 rounded-full font-semibold">
+                  <span className="text-xs text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full font-semibold">
                     {floor.rooms.length} Rooms
                   </span>
                 </div>
@@ -642,11 +644,11 @@ export default function AdminPage() {
                   {floor.rooms.map((room) => (
                     <div
                       key={room.id}
-                      className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2 text-xs"
+                      className="bg-card border border-border rounded-xl p-4 space-y-2 text-xs shadow-2xs"
                     >
-                      <div className="flex justify-between items-center font-bold text-white">
+                      <div className="flex justify-between items-center font-bold text-foreground">
                         <span>Room {room.number}</span>
-                        <span className="text-zinc-400 font-normal">
+                        <span className="text-muted-foreground font-normal">
                           {room.type} ({room.occupants.length}/{room.capacity})
                         </span>
                       </div>
@@ -654,10 +656,10 @@ export default function AdminPage() {
                         {room.occupants.map((occ) => (
                           <div
                             key={occ.id}
-                            className="bg-zinc-950 px-2.5 py-1.5 rounded-lg text-zinc-300 font-medium flex items-center gap-2"
+                            className="bg-muted px-2.5 py-1.5 rounded-lg text-foreground font-medium flex items-center gap-2"
                           >
                             <span
-                              className={`w-2 h-2 rounded-full ${occ.status === "RESERVED" ? "bg-amber-400" : "bg-emerald-400"}`}
+                              className={`w-2 h-2 rounded-full ${occ.status === "RESERVED" ? "bg-amber-500" : "bg-emerald-500"}`}
                             />
                             {occ.name}
                           </div>
@@ -667,7 +669,7 @@ export default function AdminPage() {
                         }).map((_, idx) => (
                           <div
                             key={`vacant-${idx}`}
-                            className="bg-emerald-950/20 border border-emerald-500/20 border-dashed px-2.5 py-1.5 rounded-lg text-emerald-400/80 italic text-[11px]"
+                            className="bg-emerald-500/10 border border-emerald-500/20 border-dashed px-2.5 py-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 italic text-[11px]"
                           >
                             Vacant Bed
                           </div>
@@ -684,13 +686,15 @@ export default function AdminPage() {
 
       {/* EMPTY STATE */}
       {!isEditing && floors.length === 0 && (
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-12 shadow-xl flex flex-col items-center text-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center">
-            <Building2 className="w-7 h-7 text-indigo-400" />
+        <div className="bg-card border border-border rounded-xl p-12 shadow-xs flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Building2 className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">No PG Data Yet</h2>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+            <h2 className="text-lg font-bold text-foreground">
+              No PG Data Yet
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
               No floors or rooms have been configured. Add your first floor to
               get started, or seed sample data.
             </p>
@@ -698,7 +702,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-center gap-3">
             <button
               onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/25 cursor-pointer"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" /> Add PG Data
             </button>
@@ -709,15 +713,15 @@ export default function AdminPage() {
       {/* EDIT MODE — per-entity save/delete */}
       {isEditing && (
         <div className="space-y-6">
-          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+          <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-lg font-bold text-foreground">
                   {floors.length === 0
                     ? "Add PG Data"
                     : "Edit PG Configuration"}
                 </h2>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Save or delete each room and occupant individually. Save
                   buttons activate only when changes are made.
                 </p>
@@ -726,7 +730,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold px-4 py-2 rounded-xl border border-zinc-700 transition-all cursor-pointer"
+                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold px-4 py-2 rounded-lg border border-border transition-colors cursor-pointer"
               >
                 Done
               </button>
@@ -734,8 +738,8 @@ export default function AdminPage() {
 
             {floors.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-                <Building2 className="w-8 h-8 text-zinc-600" />
-                <p className="text-sm text-zinc-500">
+                <Building2 className="w-8 h-8 text-muted-foreground/60" />
+                <p className="text-sm text-muted-foreground">
                   No floors yet. Click &ldquo;Add Floor&rdquo; below to start.
                 </p>
               </div>
@@ -744,10 +748,10 @@ export default function AdminPage() {
                 {floors.map((floor, fIdx) => (
                   <div
                     key={floor.id}
-                    className="bg-zinc-950/80 border border-zinc-800 rounded-2xl p-5 space-y-5"
+                    className="bg-muted/30 border border-border rounded-xl p-5 space-y-5"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
-                      <div className="px-2 py-1 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3.5 rounded-xl border border-border">
+                      <div className="px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
                         Floor #{floor.floorNumber}
                       </div>
 
@@ -756,7 +760,7 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => handleAddRoom(floor)}
                           disabled={actionKey === `add-room-${floor.id}`}
-                          className="text-xs bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer font-semibold disabled:opacity-50"
+                          className="text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-md flex items-center gap-1 cursor-pointer font-semibold disabled:opacity-50"
                         >
                           {actionKey === `add-room-${floor.id}` ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -769,7 +773,7 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => handleDeleteFloor(floor)}
                           disabled={actionKey === `del-floor-${floor.id}`}
-                          className="text-xs bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-500/40 p-1.5 rounded-lg cursor-pointer disabled:opacity-50"
+                          className="text-xs bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 p-1.5 rounded-md cursor-pointer disabled:opacity-50"
                           title="Delete Floor"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -778,9 +782,9 @@ export default function AdminPage() {
                     </div>
 
                     {floor.rooms.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-6 gap-2 text-center border border-dashed border-zinc-800 rounded-xl">
-                        <DoorOpen className="w-6 h-6 text-zinc-600" />
-                        <p className="text-xs text-zinc-500">
+                      <div className="flex flex-col items-center justify-center py-6 gap-2 text-center border border-dashed border-border rounded-xl">
+                        <DoorOpen className="w-6 h-6 text-muted-foreground/60" />
+                        <p className="text-xs text-muted-foreground">
                           No rooms on this floor. Click &ldquo;Add Room&rdquo;.
                         </p>
                       </div>
@@ -803,11 +807,11 @@ export default function AdminPage() {
                           return (
                             <div
                               key={room.id}
-                              className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 space-y-4 shadow-md"
+                              className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-2xs"
                             >
-                              <div className="flex items-start justify-between gap-2 border-b border-zinc-800 pb-2.5">
+                              <div className="flex items-start justify-between gap-2 border-b border-border pb-2.5">
                                 <div className="flex items-start gap-2">
-                                  <span className="text-xs font-semibold text-zinc-400 mt-1">
+                                  <span className="text-xs font-semibold text-muted-foreground mt-1">
                                     Room
                                   </span>
                                   <div>
@@ -823,7 +827,7 @@ export default function AdminPage() {
                                           e.target.value,
                                         )
                                       }
-                                      className={`w-20 bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none ${inputErrorClass(!!roomErrors.number)}`}
+                                      className={`w-20 bg-background border rounded-md px-2.5 py-1 text-xs text-foreground font-bold focus:outline-none ${inputErrorClass(!!roomErrors.number)}`}
                                     />
                                     <FieldError message={roomErrors.number} />
                                   </div>
@@ -832,7 +836,7 @@ export default function AdminPage() {
                                 <div className="flex items-start gap-2">
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <label className="text-[11px] text-zinc-400">
+                                      <label className="text-[11px] text-muted-foreground">
                                         Cap:
                                       </label>
                                       <select
@@ -845,7 +849,7 @@ export default function AdminPage() {
                                             Number(e.target.value),
                                           )
                                         }
-                                        className={`bg-zinc-950 border rounded-lg px-2 py-1 text-xs text-white focus:outline-none ${inputErrorClass(!!roomErrors.capacity)}`}
+                                        className={`bg-background border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none ${inputErrorClass(!!roomErrors.capacity)}`}
                                       >
                                         <option value={1}>1 (Single)</option>
                                         <option value={2}>2 (Double)</option>
@@ -858,8 +862,8 @@ export default function AdminPage() {
                                         disabled={!canSaveRoom}
                                         className={`p-1 disabled:opacity-30 disabled:cursor-not-allowed ${
                                           canSaveRoom
-                                            ? "text-emerald-400 hover:text-emerald-300 cursor-pointer"
-                                            : "text-emerald-400/40"
+                                            ? "text-emerald-600 dark:text-emerald-400 hover:opacity-80 cursor-pointer"
+                                            : "text-muted-foreground/40"
                                         }`}
                                         title={
                                           !roomDirty
@@ -881,7 +885,7 @@ export default function AdminPage() {
                                         disabled={
                                           actionKey === `del-room-${room.id}`
                                         }
-                                        className="text-rose-400 hover:text-rose-300 p-1 disabled:opacity-50"
+                                        className="text-destructive hover:opacity-80 p-1 disabled:opacity-50 cursor-pointer"
                                         title="Delete Room"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -893,7 +897,7 @@ export default function AdminPage() {
                               </div>
 
                               <div className="space-y-2">
-                                <div className="text-[11px] text-zinc-400 font-semibold">
+                                <div className="text-[11px] text-muted-foreground font-semibold">
                                   Occupants ({room.occupants.length}/
                                   {room.capacity})
                                 </div>
@@ -929,7 +933,7 @@ export default function AdminPage() {
                                             )
                                           }
                                           placeholder="Occupant Full Name"
-                                          className={`flex-1 min-w-0 bg-zinc-950 border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none ${inputErrorClass(!!occErrors.name)}`}
+                                          className={`flex-1 min-w-0 bg-background border rounded-md px-3 py-1.5 text-xs text-foreground focus:outline-none ${inputErrorClass(!!occErrors.name)}`}
                                         />
                                         <select
                                           value={occ.status}
@@ -942,7 +946,7 @@ export default function AdminPage() {
                                               e.target.value,
                                             )
                                           }
-                                          className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
+                                          className="bg-background border border-input rounded-md px-2 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-primary"
                                         >
                                           <option value="OCCUPIED">
                                             Occupied
@@ -963,8 +967,8 @@ export default function AdminPage() {
                                           disabled={!canSaveOcc}
                                           className={`p-1 disabled:opacity-30 disabled:cursor-not-allowed ${
                                             canSaveOcc
-                                              ? "text-emerald-400 hover:text-emerald-300 cursor-pointer"
-                                              : "text-emerald-400/40"
+                                              ? "text-emerald-600 dark:text-emerald-400 hover:opacity-80 cursor-pointer"
+                                              : "text-muted-foreground/40"
                                           }`}
                                           title={
                                             !occDirty
@@ -991,7 +995,7 @@ export default function AdminPage() {
                                           disabled={
                                             actionKey === `del-occ-${occ.id}`
                                           }
-                                          className="text-rose-400 hover:text-rose-300 p-1 disabled:opacity-50"
+                                          className="text-destructive hover:opacity-80 p-1 disabled:opacity-50 cursor-pointer"
                                           title="Remove Occupant"
                                         >
                                           <Trash2 className="w-3.5 h-3.5" />
@@ -1016,7 +1020,7 @@ export default function AdminPage() {
                                           clearNewOccupantError(room.id);
                                         }}
                                         placeholder="New occupant name"
-                                        className={`flex-1 bg-zinc-950 border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none ${inputErrorClass(!!fieldErrors.newOccupant[room.id])}`}
+                                        className={`flex-1 bg-background border rounded-md px-3 py-1.5 text-xs text-foreground focus:outline-none ${inputErrorClass(!!fieldErrors.newOccupant[room.id])}`}
                                         onKeyDown={(e) => {
                                           if (e.key === "Enter") {
                                             e.preventDefault();
@@ -1032,7 +1036,7 @@ export default function AdminPage() {
                                         disabled={
                                           actionKey === `add-occ-${room.id}`
                                         }
-                                        className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                        className="text-xs text-emerald-600 dark:text-emerald-400 hover:opacity-80 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
                                       >
                                         {actionKey === `add-occ-${room.id}` ? (
                                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -1058,12 +1062,12 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="border-t border-zinc-800 pt-4">
+            <div className="border-t border-border pt-4">
               <button
                 type="button"
                 onClick={handleAddFloor}
                 disabled={actionKey === "add-floor"}
-                className="inline-flex items-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
                 {actionKey === "add-floor" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

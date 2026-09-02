@@ -1,10 +1,9 @@
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-/**
- * User-only route boundary. Admins use /admin instead of the user dashboard.
- */
 export default async function DashboardLayout({
   children,
 }: {
@@ -14,13 +13,20 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/login");
+  if (!session || session.user.role !== "USER") {
+    redirect("/"); // Or redirect to a 403 Forbidden page
   }
-
-  if (session.user.role === "ADMIN") {
-    redirect("/admin");
-  }
-
-  return children;
+  return (
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>{children}</SidebarInset>
+    </SidebarProvider>
+  );
 }

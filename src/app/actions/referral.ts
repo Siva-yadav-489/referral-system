@@ -16,10 +16,21 @@ export interface RefereeInfo {
   milestonesCompleted: string[];
 }
 
+export interface PointHistoryItem {
+  id: string;
+  reason: string;
+  milestone: "SIGNUP" | "PURCHASE";
+  points: number;
+  rewardedAt: Date;
+  refereeName: string;
+  refereeEmail: string;
+}
+
 export interface ReferralDashboardData {
   points: number;
   referralCode: string;
   referees: RefereeInfo[];
+  history: PointHistoryItem[];
 }
 
 /**
@@ -65,6 +76,7 @@ async function fetchUserDashboardDataRaw(
           .select()
           .from(referralHistories)
           .where(inArray(referralHistories.referralId, referralIds))
+          .orderBy(desc(referralHistories.rewardedAt))
       : [];
 
   // Group milestones by referralId
@@ -85,10 +97,43 @@ async function fetchUserDashboardDataRaw(
     milestonesCompleted: milestonesByReferralId[r.referralId] || [],
   }));
 
+  const refereeLookup: Record<string, { name: string; email: string }> = {};
+  userReferrals.forEach((r) => {
+    refereeLookup[r.referralId] = {
+      name: r.refereeName,
+      email: r.refereeEmail,
+    };
+  });
+
+  const history: PointHistoryItem[] = histories
+    .map((h) => {
+      const refInfo = refereeLookup[h.referralId];
+      const refereeName = refInfo?.name || "Friend";
+      const reason =
+        h.milestone === "SIGNUP"
+          ? `Referral Signup (${refereeName})`
+          : `First Purchase (${refereeName})`;
+
+      return {
+        id: h.id,
+        reason,
+        milestone: h.milestone as "SIGNUP" | "PURCHASE",
+        points: h.pointsAwarded,
+        rewardedAt: h.rewardedAt,
+        refereeName,
+        refereeEmail: refInfo?.email || "",
+      };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.rewardedAt).getTime() - new Date(a.rewardedAt).getTime(),
+    );
+
   return {
     points: currentUser.points,
     referralCode: currentUser.referralCode,
     referees,
+    history,
   };
 }
 
@@ -162,3 +207,13 @@ export async function setReferralCookie(code: string): Promise<boolean> {
   }
   return false;
 }
+
+/**
+ * Server Action to clear referral code from HTTP cookies
+ */
+export async function clearReferralCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete("referral_code");
+  cookieStore.delete("ref");
+}
+

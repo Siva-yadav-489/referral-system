@@ -70,6 +70,10 @@ export const auth = betterAuth({
               body.ref ||
               body.referralCode;
 
+            // Clear referral cookies to ensure they don't persist for subsequent signups
+            cookieStore.delete("referral_code");
+            cookieStore.delete("ref");
+
             if (!referralCode) return;
 
             const cleanCode = referralCode.trim().toUpperCase();

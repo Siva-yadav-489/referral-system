@@ -18,7 +18,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="admin-layout-wrapper min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="admin-layout-wrapper min-h-screen bg-background text-foreground flex flex-col">
       <Header />
 
       <main className="p-4 sm:p-8 flex-1 max-w-6xl w-full mx-auto">

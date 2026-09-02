@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Public routes — accessible without authentication.
- * Everything else requires a valid session.
- */
-const PUBLIC_PATHS = ["/", "/login", "/signup"];
-
-/**
  * Prefixes that are always allowed through (Next.js internals + Better-Auth API).
  */
 const BYPASS_PREFIXES = [
-  "/api/auth",    // Better-Auth session/sign-in endpoints
-  "/_next",       // Next.js static files & HMR
+  "/api/auth", // Better-Auth session/sign-in endpoints
+  "/_next", // Next.js static files & HMR
   "/favicon.ico",
 ];
+
+/**
+ * Routes intended only for unauthenticated guests (auth & referral flows).
+ */
+const GUEST_ONLY_ROUTES = ["/login", "/signup"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,19 +22,28 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Allow public paths (exact match)
-  if (PUBLIC_PATHS.includes(pathname)) {
-    return NextResponse.next();
-  }
-
-  // 3. Check for a Better-Auth session cookie.
-  //    Better-Auth stores the session in "better-auth.session_token" by default.
+  // 2. Check for Better-Auth session cookie
   const sessionToken =
     request.cookies.get("better-auth.session_token")?.value ||
     request.cookies.get("__Secure-better-auth.session_token")?.value;
 
+  const isGuestOnlyRoute =
+    GUEST_ONLY_ROUTES.includes(pathname) || pathname.startsWith("/referral");
+
+  // 3. Restrict logged-in users from accessing auth and referral routes
+  if (sessionToken && isGuestOnlyRoute) {
+    return NextResponse.redirect(new URL("/dashboard/occupancy", request.url));
+  }
+
+  // 4. Allow public paths (home page, or guest-only routes for non-logged-in users)
+  const isPublicPath = pathname === "/" || isGuestOnlyRoute;
+
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
+
+  // 5. If not logged in and accessing protected routes, redirect to login
   if (!sessionToken) {
-    // Redirect to login, preserving the intended destination via callbackUrl
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
