@@ -112,6 +112,26 @@ export function ReferralsView() {
             they complete their first purchase.
           </CardDescription>
         </CardHeader>
+        {dashboardData?.referredBy && (
+          <div className="px-6 pb-4 -mt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/60 rounded-md px-3 py-2 border border-border">
+              <Gift className="size-4 text-primary shrink-0" />
+              <span>
+                You were referred by{" "}
+                <strong className="font-semibold text-foreground">
+                  {dashboardData.referredBy.name}
+                </strong>
+                {dashboardData.referredBy.email ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({dashboardData.referredBy.email})
+                  </span>
+                ) : null}
+                .
+              </span>
+            </div>
+          </div>
+        )}
       </Card>
 
       {dataLoading && !dashboardData ? (

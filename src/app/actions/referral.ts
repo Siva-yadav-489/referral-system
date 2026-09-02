@@ -31,6 +31,10 @@ export interface ReferralDashboardData {
   referralCode: string;
   referees: RefereeInfo[];
   history: PointHistoryItem[];
+  referredBy?: {
+    name: string;
+    email: string;
+  } | null;
 }
 
 /**
@@ -105,35 +109,98 @@ async function fetchUserDashboardDataRaw(
     };
   });
 
-  const history: PointHistoryItem[] = histories
-    .map((h) => {
-      const refInfo = refereeLookup[h.referralId];
-      const refereeName = refInfo?.name || "Friend";
-      const reason =
-        h.milestone === "SIGNUP"
-          ? `Referral Signup (${refereeName})`
-          : `First Purchase (${refereeName})`;
+  const history: PointHistoryItem[] = histories.map((h) => {
+    const refInfo = refereeLookup[h.referralId];
+    const refereeName = refInfo?.name || "Friend";
+    const reason =
+      h.milestone === "SIGNUP"
+        ? `Referral Signup (${refereeName})`
+        : `First Purchase (${refereeName})`;
 
-      return {
-        id: h.id,
-        reason,
-        milestone: h.milestone as "SIGNUP" | "PURCHASE",
-        points: h.pointsAwarded,
-        rewardedAt: h.rewardedAt,
-        refereeName,
-        refereeEmail: refInfo?.email || "",
-      };
+    return {
+      id: h.id,
+      reason,
+      milestone: h.milestone as "SIGNUP" | "PURCHASE",
+      points: h.pointsAwarded,
+      rewardedAt: h.rewardedAt,
+      refereeName,
+      refereeEmail: refInfo?.email || "",
+    };
+  });
+
+  // 4. Check if current user was referred by someone
+  const [incomingReferral] = await db
+    .select({
+      referralId: referrals.id,
+      referrerId: referrals.referrerId,
+      referrerName: user.name,
+      referrerEmail: user.email,
+      status: referrals.status,
+      createdAt: referrals.createdAt,
     })
-    .sort(
-      (a, b) =>
-        new Date(b.rewardedAt).getTime() - new Date(a.rewardedAt).getTime(),
-    );
+    .from(referrals)
+    .innerJoin(user, eq(referrals.referrerId, user.id))
+    .where(eq(referrals.refereeId, userId))
+    .limit(1);
+
+  let incomingHistory: PointHistoryItem[] = [];
+
+  if (incomingReferral) {
+    const incomingHistories = await db
+      .select()
+      .from(referralHistories)
+      .where(eq(referralHistories.referralId, incomingReferral.referralId))
+      .orderBy(desc(referralHistories.rewardedAt));
+
+    if (incomingHistories.length > 0) {
+      incomingHistory = incomingHistories.map((h) => {
+        const referrerName = incomingReferral.referrerName || "a friend";
+        const reason =
+          h.milestone === "SIGNUP"
+            ? `Welcome Bonus (Referred by ${referrerName})`
+            : `Purchase Reward (Referred by ${referrerName})`;
+
+        return {
+          id: `inc_${h.id}`,
+          reason,
+          milestone: h.milestone as "SIGNUP" | "PURCHASE",
+          points: h.pointsAwarded,
+          rewardedAt: h.rewardedAt,
+          refereeName: referrerName,
+          refereeEmail: incomingReferral.referrerEmail,
+        };
+      });
+    } else {
+      incomingHistory = [
+        {
+          id: `inc_signup_${incomingReferral.referralId}`,
+          reason: `Welcome Bonus (Referred by ${incomingReferral.referrerName || "a friend"})`,
+          milestone: "SIGNUP" as const,
+          points: 10,
+          rewardedAt: incomingReferral.createdAt,
+          refereeName: incomingReferral.referrerName || "a friend",
+          refereeEmail: incomingReferral.referrerEmail,
+        },
+      ];
+    }
+  }
+
+  const combinedHistory = [...history, ...incomingHistory].sort(
+    (a, b) =>
+      new Date(b.rewardedAt).getTime() - new Date(a.rewardedAt).getTime(),
+  );
 
   return {
     points: currentUser.points,
     referralCode: currentUser.referralCode,
     referees,
-    history,
+    history: combinedHistory,
+    referredBy: incomingReferral
+      ? {
+          name: incomingReferral.referrerName,
+          email: incomingReferral.referrerEmail,
+        }
+      : null,
   };
 }
 
