@@ -14,22 +14,12 @@ import {
   Users,
   Sparkles,
   RefreshCw,
-  CheckCircle2,
   Clock,
   Coins,
-  History,
   TrendingUp,
-  LinkIcon,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export function ReferralsView() {
   const { data: session, isPending: sessionLoading } = useSession();
@@ -39,7 +29,8 @@ export function ReferralsView() {
     useState<ReferralDashboardData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -89,50 +80,50 @@ export function ReferralsView() {
   const handleCopyLink = () => {
     if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2500);
+  };
+
+  const handleCopyCode = () => {
+    if (!dashboardData?.referralCode) return;
+    navigator.clipboard.writeText(dashboardData.referralCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2500);
   };
 
   const referees = dashboardData?.referees || [];
   const history = dashboardData?.history || [];
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-6 w-full">
+    <div className="flex flex-1 flex-col gap-4 md:gap-10 w-full p-2 md:p-10">
       {/* Top Row: Informational Banner */}
-      <Card className="border-border bg-card shadow-xs">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl md:text-2xl font-semibold tracking-tight">
+      <div className="flex flex-col items-center space-y-5 pb-10">
+        <div className="text-center space-y-5">
+          <div className="text-xl md:text-3xl font-bold tracking-tight">
             Earn Rewards with Friends
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Share your referral link with friends. Earn{" "}
-            <span className="font-semibold text-foreground">+10 pts</span> when
-            they sign up, and{" "}
-            <span className="font-semibold text-foreground">+25 pts</span> when
-            they complete their first purchase.
-          </CardDescription>
-        </CardHeader>
-        {dashboardData?.referredBy && (
-          <div className="px-6 pb-4 -mt-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/60 rounded-md px-3 py-2 border border-border">
-              <Gift className="size-4 text-primary shrink-0" />
-              <span>
-                You were referred by{" "}
-                <strong className="font-semibold text-foreground">
-                  {dashboardData.referredBy.name}
-                </strong>
-                {dashboardData.referredBy.email ? (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    ({dashboardData.referredBy.email})
-                  </span>
-                ) : null}
-                .
-              </span>
-            </div>
           </div>
+          <div className="text-sm font-semibold text-neutral-600/85 dark:text-neutral-400">
+            Share your referral link with friends. <br /> Earn{" "}
+            <span className="font-bold text-emerald-600">+10 pts</span> when
+            they sign up and{" "}
+            <span className="font-bold text-emerald-600">+25 pts</span> on their
+            first purchase.
+          </div>
+        </div>
+        {dashboardData?.referredBy && (
+          <p className="flex items-center gap-2 text-xs text-foreground font-semibold bg-teal-500 rounded-md px-3 py-2 shadow-xs border w-fit">
+            <Gift className="size-3.5 shrink-0" />
+            <span>
+              You were referred by{" "}
+              <span className="font-bold">{dashboardData.referredBy.name}</span>
+              {dashboardData.referredBy.email ? (
+                <span> ({dashboardData.referredBy.email})</span>
+              ) : null}
+              .
+            </span>
+          </p>
         )}
-      </Card>
+      </div>
 
       {dataLoading && !dashboardData ? (
         <div className="flex flex-col items-center justify-center py-20">
@@ -155,10 +146,74 @@ export function ReferralsView() {
         </Card>
       ) : (
         <>
+          <Card className="shadow-xs flex flex-col justify-between">
+            <CardHeader className="text-lg font-bold">
+              Invite friends
+            </CardHeader>
+            <CardContent className="space-y-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Referral Link:</p>
+                <div className="flex items-center gap-1.5 min-w-0 bg-gray-200 dark:bg-gray-400 p-2 rounded-md">
+                  <input
+                    type="text"
+                    readOnly
+                    value={referralLink}
+                    className="min-w-0 flex-1 bg-transparent text-xs font-mono font-medium text-neutral-500 dark:text-neutral-200 outline-none select-all truncate"
+                    title={referralLink}
+                  />
+
+                  <Button
+                    size="icon-xs"
+                    variant={linkCopied ? "default" : "ghost"}
+                    onClick={handleCopyLink}
+                    title={linkCopied ? "Copied!" : "Copy link"}
+                    className="shrink-0 rounded-lg size-8 cursor-pointer"
+                  >
+                    {linkCopied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Referral Code:</p>
+                <div className="flex items-center gap-1.5 min-w-0 dark:bg-gray-400 bg-gray-200 p-2 rounded-md">
+                  <input
+                    type="text"
+                    readOnly
+                    value={dashboardData?.referralCode}
+                    className="min-w-0 flex-1 bg-transparent text-sm font-mono font-medium text-neutral-500 dark:text-neutral-200 outline-none select-all truncate"
+                    title={dashboardData?.referralCode}
+                  />
+
+                  <Button
+                    size="icon-xs"
+                    variant={codeCopied ? "default" : "ghost"}
+                    onClick={handleCopyCode}
+                    title={codeCopied ? "Copied!" : "Copy code"}
+                    className="shrink-0 rounded-lg size-8 cursor-pointer"
+                  >
+                    {codeCopied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* <p className="text-[11px] ml-1 font-semibold text-muted-foreground">
+                {copied ? "Copied to clipboard!" : "Click icon to copy"}
+              </p> */}
+            </CardContent>
+          </Card>
           {/* 1st Row: 4 Metric Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Column 1: Total Points */}
-            <Card className="border-border shadow-xs flex flex-col justify-between">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> */}
+          {/* Column 1: Total Points */}
+          {/* <Card className="border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">
@@ -178,10 +233,10 @@ export function ReferralsView() {
                   Available reward balance
                 </p>
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Column 2: Referral Code */}
-            <Card className="border-border shadow-xs flex flex-col justify-between">
+          {/* Column 2: Referral Code */}
+          {/* <Card className="border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">
@@ -198,10 +253,10 @@ export function ReferralsView() {
                   Your unique code
                 </p>
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Column 3: Total Referees */}
-            <Card className="border-border shadow-xs flex flex-col justify-between">
+          {/* Column 3: Total Referees */}
+          {/* <Card className="border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">
@@ -216,10 +271,10 @@ export function ReferralsView() {
                 </div>
                 <p className="text-xs text-muted-foreground">Friends invited</p>
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Column 4: Copyable Link with Single Click Copy */}
-            <Card className="border-border shadow-xs flex flex-col justify-between">
+          {/* Column 4: Copyable Link with Single Click Copy */}
+          {/* <Card className="border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">
@@ -257,36 +312,28 @@ export function ReferralsView() {
                   {copied ? "Copied to clipboard!" : "Click icon to copy"}
                 </p>
               </CardContent>
-            </Card>
-          </div>
+            </Card> */}
+          {/* </div> */}
 
           {/* 2nd Row: 2 Columns [Referee Details | Point History] */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Column 1: Referee Details List */}
             <Card className="border-border shadow-xs">
-              <CardHeader className="pb-3">
+              <CardHeader className="">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="size-4 text-muted-foreground" />
-                    <CardTitle className="text-base font-semibold">
-                      Referee Details
-                    </CardTitle>
-                  </div>
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {referees.length} Total
-                  </Badge>
+                  <CardTitle className="text-lg font-bold">
+                    Referee Details
+                  </CardTitle>
+                  <p className="text-xs font-semibold rounded-sm text-foreground dark:text-background shadow-xs border-border py-1 px-3 bg-gray-200">
+                    Total:&nbsp;{referees.length}
+                  </p>
                 </div>
-                <CardDescription className="text-xs">
-                  Friends who joined using your invitation
-                </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 {referees.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-10 text-center font-semibold text-muted-foreground">
                     <Users className="size-8 opacity-40 mb-2" />
-                    <p className="text-sm font-medium text-foreground">
-                      No referees yet
-                    </p>
+                    <p className="text-sm text-foreground">No referees yet</p>
                     <p className="text-xs mt-0.5">
                       Share your code or link above to start earning points.
                     </p>
@@ -320,7 +367,7 @@ export function ReferralsView() {
                               {referee.name?.[0]?.toUpperCase() || "U"}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate leading-tight">
+                              <p className="text-sm font-semibold truncate leading-tight">
                                 {referee.name}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
@@ -328,31 +375,31 @@ export function ReferralsView() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 font-semibold">
                             {hasPurchase ? (
-                              <Badge
-                                variant="outline"
-                                className="gap-1 text-[11px] font-normal border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
+                              <span
+                                // variant="outline"
+                                className="gap-1 text-[12px] border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
                               >
-                                <CheckCircle2 className="size-3" />
+                                {/* <CheckCircle2 className="size-3" /> */}
                                 Purchased (+25)
-                              </Badge>
+                              </span>
                             ) : hasSignup ? (
-                              <Badge
-                                variant="outline"
-                                className="gap-1 text-[11px] font-normal"
+                              <span
+                                // variant="outline"
+                                className="gap-1 text-[12px]"
                               >
-                                <Check className="size-3" />
+                                {/* <Check className="size-3" /> */}
                                 Joined (+10)
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge
-                                variant="outline"
-                                className="gap-1 text-[11px] font-normal text-muted-foreground"
+                              <span
+                                // variant="outline"
+                                className="gap-1 text-[12px] text-muted-foreground"
                               >
                                 <Clock className="size-3" />
                                 Pending
-                              </Badge>
+                              </span>
                             )}
                           </div>
                         </div>
@@ -365,27 +412,26 @@ export function ReferralsView() {
 
             {/* Column 2: Point History (Transactions) */}
             <Card className="border-border shadow-xs">
-              <CardHeader className="pb-3">
+              <CardHeader className="">
                 <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-bold">
+                    Point History
+                  </CardTitle>
                   <div className="flex items-center gap-2">
-                    <History className="size-4 text-muted-foreground" />
-                    <CardTitle className="text-base font-semibold">
-                      Point History
-                    </CardTitle>
+                    <p className="text-xs font-semibold rounded-sm shadow-xs text-foreground dark:text-background border-border py-1 px-3 bg-gray-200">
+                      Points:&nbsp;{dashboardData?.points}
+                    </p>
+                    <p className="text-xs font-semibold rounded-sm shadow-xs text-foreground dark:text-background border-border py-1 px-3 bg-gray-200">
+                      Transactions:&nbsp;{history.length}
+                    </p>
                   </div>
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {history.length} Transactions
-                  </Badge>
                 </div>
-                <CardDescription className="text-xs">
-                  All rewards and point activity recorded on your account
-                </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 {history.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-10 text-center font-semibold text-muted-foreground">
                     <Coins className="size-8 opacity-40 mb-2" />
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm text-foreground">
                       No transactions yet
                     </p>
                     <p className="text-xs mt-0.5">
@@ -418,7 +464,7 @@ export function ReferralsView() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate leading-tight">
+                              <p className="text-sm font-semibold truncate leading-tight">
                                 {tx.reason}
                               </p>
                               <p className="text-xs text-muted-foreground">

@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+
 import {
   ChevronDown,
   ChevronUp,
   User,
   BedSingle,
-  DoorOpen,
-  Building2,
-  Users,
   CheckCircle2,
   AlertCircle,
-  ShieldCheck,
   Loader2,
   Inbox,
   Lock,
@@ -29,14 +25,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   getOccupancyData,
   reserveBedAction,
-  checkIsAdmin,
   FloorData,
 } from "@/app/actions/occupancy";
 
 export function OccupancyView() {
   const [floors, setFloors] = useState<FloorData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [expandedFloor, setExpandedFloor] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     text: string;
@@ -65,10 +59,7 @@ export function OccupancyView() {
 
     (async () => {
       try {
-        const [dbFloors, admin] = await Promise.all([
-          getOccupancyData(),
-          checkIsAdmin(),
-        ]);
+        const [dbFloors] = await Promise.all([getOccupancyData()]);
         if (cancelled) return;
         if (dbFloors && dbFloors.length > 0) {
           setFloors(dbFloors);
@@ -76,7 +67,6 @@ export function OccupancyView() {
         } else {
           setFloors([]);
         }
-        setIsAdmin(admin);
       } catch {
         if (cancelled) return;
         setFloors([]);
@@ -130,33 +120,20 @@ export function OccupancyView() {
     totalCapacity > 0 ? Math.round((totalOccupants / totalCapacity) * 100) : 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-6 w-full">
+    <div className="flex flex-1 flex-col gap-4 md:gap-10 p-2 md:p-10 w-full">
       {/* Top Row: Informational Header Banner */}
-      <Card className="border-border bg-card shadow-xs">
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4">
-          <div className="space-y-1">
-            <CardTitle className="text-xl md:text-2xl font-semibold tracking-tight">
-              PG Occupancy & Bed Reservation
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Explore available floors, view room-sharing configurations, and
-              reserve vacant beds in real-time.
-            </CardDescription>
-          </div>
 
-          {isAdmin && (
-            <Button
-              render={<Link href="/admin" />}
-              size="sm"
-              variant="outline"
-              className="gap-2 shrink-0"
-            >
-              <ShieldCheck className="size-4" />
-              <span>Admin Panel</span>
-            </Button>
-          )}
-        </CardHeader>
-      </Card>
+      <div className="flex flex-col items-center space-y-5 pb-10">
+        <div className="text-center space-y-5">
+          <div className="text-xl md:text-3xl font-bold tracking-tight">
+            PG Occupancy & Bed Reservation
+          </div>
+          <div className="text-sm font-semibold text-neutral-600/85 dark:text-neutral-400">
+            Explore available floors, view room-sharing configurations, and
+            reserve vacant beds in real-time.
+          </div>
+        </div>
+      </div>
 
       {/* Toast Notification Alert */}
       {notification && (
@@ -179,81 +156,52 @@ export function OccupancyView() {
 
       {/* 1st Row: 4 Column Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Floors */}
-        <Card className="border-border shadow-xs flex flex-col justify-between">
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Total Floors
-              </span>
-              <Building2 className="size-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
+        <Card className="border-border shadow-xs space-y-3">
+          <CardHeader className="font-bold">Total Floors</CardHeader>
           <CardContent className="space-y-2">
             <div className="text-2xl md:text-3xl font-bold tracking-tight">
               {totalFloors}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground font-semibold">
               {totalRooms} Total Rooms
             </p>
           </CardContent>
         </Card>
 
         {/* Card 2: Total Beds */}
-        <Card className="border-border shadow-xs flex flex-col justify-between">
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Total Beds
-              </span>
-              <BedSingle className="size-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
+        <Card className="border-border shadow-xs space-y-3">
+          <CardHeader className="font-bold">Total Beds</CardHeader>
           <CardContent className="space-y-2">
             <div className="text-2xl md:text-3xl font-bold tracking-tight">
               {totalCapacity}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground font-semibold">
               Across all floors
             </p>
           </CardContent>
         </Card>
 
         {/* Card 3: Occupied Beds */}
-        <Card className="border-border shadow-xs flex flex-col justify-between">
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Occupied Beds
-              </span>
-              <Users className="size-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
+        <Card className="border-border shadow-xs space-y-3">
+          <CardHeader className="font-bold">Occupied Beds</CardHeader>
           <CardContent className="space-y-2">
             <div className="text-2xl md:text-3xl font-bold tracking-tight">
               {totalOccupants}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground font-semibold">
               {occupancyRate}% Occupied
             </p>
           </CardContent>
         </Card>
 
         {/* Card 4: Available Beds */}
-        <Card className="border-border shadow-xs flex flex-col justify-between">
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Available Beds
-              </span>
-              <DoorOpen className="size-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
+        <Card className="border-border shadow-xs space-y-3">
+          <CardHeader className="font-bold">Available Beds</CardHeader>
           <CardContent className="space-y-2">
             <div className="text-2xl md:text-3xl font-bold tracking-tight">
               {totalVacantBeds}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground font-semibold">
               Ready to reserve
             </p>
           </CardContent>
@@ -278,16 +226,6 @@ export function OccupancyView() {
             No floor or room occupancy data has been configured in the database
             yet.
           </CardDescription>
-          {isAdmin && (
-            <Button
-              render={<Link href="/admin" />}
-              size="sm"
-              variant="outline"
-              className="mt-4 gap-2"
-            >
-              <ShieldCheck className="size-4" /> Go to Admin Panel
-            </Button>
-          )}
         </Card>
       ) : (
         <div className="space-y-4">
@@ -319,10 +257,10 @@ export function OccupancyView() {
                       F{floor.floorNumber}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm">
+                      <h3 className="font-bold text-sm">
                         Floor {floor.floorNumber}
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground font-semibold">
                         {floor.rooms.length} Rooms • {availableBeds} of{" "}
                         {floorCapacity} beds available
                       </p>
@@ -332,7 +270,7 @@ export function OccupancyView() {
                   <div className="flex items-center gap-3">
                     <Badge
                       variant={availableBeds > 0 ? "outline" : "secondary"}
-                      className="text-xs font-normal"
+                      className="text-xs font-normal rounded-sm p-3! bg-gray-200 dark:bg-background shadow-xs!"
                     >
                       {availableBeds > 0
                         ? `${availableBeds} Vacant`
@@ -358,7 +296,7 @@ export function OccupancyView() {
                         return (
                           <div
                             key={room.id}
-                            className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between gap-3 shadow-2xs"
+                            className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between gap-4 shadow-xs"
                           >
                             <div>
                               <div className="flex items-center justify-between mb-2">
@@ -367,14 +305,14 @@ export function OccupancyView() {
                                 </span>
                                 <Badge
                                   variant="outline"
-                                  className="text-xs font-normal"
+                                  className="text-xs font-normal rounded-sm py-3! px-2.5 shadow-xs!"
                                 >
                                   {room.type}
                                 </Badge>
                               </div>
 
                               {/* Bed Slots */}
-                              <div className="space-y-1.5 mt-3">
+                              <div className="space-y-2">
                                 {Array.from({ length: room.capacity }).map(
                                   (_, idx) => {
                                     const occupant = room.occupants[idx];
@@ -383,15 +321,15 @@ export function OccupancyView() {
                                       return (
                                         <div
                                           key={idx}
-                                          className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-muted/50 border border-border text-xs"
+                                          className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-muted border border-border text-xs"
                                         >
                                           <div className="flex items-center gap-2 min-w-0">
                                             <User className="size-3 text-muted-foreground shrink-0" />
-                                            <span className="truncate font-medium">
+                                            <span className="truncate">
                                               {occupant.name}
                                             </span>
                                           </div>
-                                          <span className="text-[10px] text-muted-foreground shrink-0 uppercase tracking-wider font-semibold">
+                                          <span className="text-[10px] text-muted-foreground shrink-0 uppercase font-semibold">
                                             {occupant.status}
                                           </span>
                                         </div>
@@ -401,13 +339,13 @@ export function OccupancyView() {
                                     return (
                                       <div
                                         key={idx}
-                                        className="flex items-center justify-between px-2.5 py-1.5 rounded-md border border-dashed border-border text-xs text-muted-foreground"
+                                        className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-green-400 border border-border text-xs text-muted-foreground dark:text-foreground"
                                       >
                                         <div className="flex items-center gap-2">
-                                          <BedSingle className="size-3 shrink-0" />
+                                          <BedSingle className="size-3  shrink-0" />
                                           <span>Bed {idx + 1}</span>
                                         </div>
-                                        <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                        <span className="text-[10px] uppercase font-semibold">
                                           Vacant
                                         </span>
                                       </div>
@@ -443,12 +381,14 @@ export function OccupancyView() {
                                   )}
                                 </Button>
                               ) : (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[11px] font-normal gap-1"
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  disabled={true}
+                                  className="gap-1 text-xs h-7 px-2.5"
                                 >
                                   <Lock className="size-3" /> Full
-                                </Badge>
+                                </Button>
                               )}
                             </div>
                           </div>

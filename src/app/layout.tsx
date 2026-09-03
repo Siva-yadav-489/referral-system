@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToasterProvider } from "@/components/ToasterProvider";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,6 +13,28 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const nuckle = localFont({
+  src: [
+    {
+      path: "./../../public/fonts/nuckle-regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./../../public/fonts/nuckle-semi-bold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./../../public/fonts/nuckle-bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  display: "swap",
+  variable: "--font-nuckle",
 });
 
 export const metadata: Metadata = {
@@ -28,9 +51,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${nuckle.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-mono">
+      <body className="min-h-full flex flex-col font-nuckle">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
