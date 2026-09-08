@@ -29,6 +29,34 @@
       "when": 1786532632269,
       "tag": "0003_sudden_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788800320421,
+      "tag": "0004_burly_white_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788850694561,
+      "tag": "0005_shocking_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788850856805,
+      "tag": "0006_rapid_mockingbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788870377801,
+      "tag": "0007_boring_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

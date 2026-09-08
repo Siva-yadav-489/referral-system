@@ -1,7 +1,12 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Header } from "@/components/Header";
+import { AdminSidebar } from "@/components/admin-sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export default async function AdminLayout({
   children,
@@ -12,18 +17,23 @@ export default async function AdminLayout({
     headers: await headers(),
   });
 
-  // Kick out unauthenticated users or standard users
   if (!session || session.user.role !== "ADMIN") {
-    redirect("/"); // Or redirect to a 403 Forbidden page
+    redirect("/");
   }
 
   return (
-    <div className="admin-layout-wrapper min-h-screen bg-background text-foreground flex flex-col">
-      <Header />
-
-      <main className="p-4 sm:p-8 flex-1 max-w-6xl w-full mx-auto">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AdminSidebar variant="sidebar" />
+      <SidebarInset>{children}</SidebarInset>
+      <SidebarTrigger className="fixed top-3 left-2 md:hidden" />
+    </SidebarProvider>
   );
 }
+

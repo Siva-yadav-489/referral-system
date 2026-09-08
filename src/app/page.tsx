@@ -3,13 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowRight,
-  AlertCircle,
-  DoorOpen,
-  Gift,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, AlertCircle, Gift, ShieldCheck } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useSession } from "@/lib/auth-client";
 
@@ -59,24 +53,13 @@ function HomeContent() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         ) : (
-          <>
-            <Link
-              href="/dashboard/occupancy"
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
-            >
-              <DoorOpen className="w-4 h-4" />
-              PG Occupancy & Beds
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              href="/dashboard/referrals"
-              className="w-full sm:w-auto bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
-            >
-              <Gift className="w-4 h-4" />
-              Referral Dashboard
-            </Link>
-          </>
+          <Link
+            href="/dashboard/referrals"
+            className="w-full sm:w-auto bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            <Gift className="w-4 h-4" />
+            Referral Dashboard
+          </Link>
         )}
       </div>
     </main>

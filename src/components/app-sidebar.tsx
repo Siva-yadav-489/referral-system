@@ -14,14 +14,9 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Building2, DoorOpen, Gift } from "lucide-react";
+import { Building2, Gift } from "lucide-react";
 
 const navItems = [
-  {
-    title: "Occupancy",
-    url: "/dashboard/occupancy",
-    icon: DoorOpen,
-  },
   {
     title: "Referrals",
     url: "/dashboard/referrals",

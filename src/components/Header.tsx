@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "@/lib/auth-client";
-import { Building2, DoorOpen, Gift, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface HeaderProps {
@@ -14,7 +14,7 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const isAdmin = session?.user.role === "ADMIN";
+  // const isAdmin = session?.user.role === "ADMIN";
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,7 +38,7 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
 
         {showAuthButtons && (
           <div className="flex items-center gap-2 sm:gap-3">
-            {isAdmin ? (
+            {/* {isAdmin ? (
               <Link
                 href="/admin"
                 className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
@@ -65,7 +65,7 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
                   Referrals
                 </Link>
               </>
-            )}
+            )} */}
 
             {session?.user ? (
               <div className="flex items-center gap-2 sm:gap-3">
