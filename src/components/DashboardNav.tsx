@@ -7,13 +7,13 @@ import { DoorOpen, Gift } from "lucide-react";
 export function DashboardNav() {
   const pathname = usePathname();
 
-  const isOccupancy = pathname.startsWith("/dashboard/occupancy");
+  const isOccupancy = pathname.startsWith("/");
   const isReferrals = pathname.startsWith("/dashboard/referrals");
 
   return (
     <div className="flex items-center gap-2 border-b border-zinc-800/80 mb-8 pb-3">
       <Link
-        href="/dashboard/occupancy"
+        href="/"
         className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
           isOccupancy
             ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-md shadow-indigo-600/10"

@@ -49,7 +49,7 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
             ) : (
               <>
                 <Link
-                  href="/dashboard/occupancy"
+                  href="/"
                   className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
                 >
                   <DoorOpen className="w-4 h-4 text-primary" />
