@@ -32,7 +32,7 @@ export function proxy(request: NextRequest) {
 
   // 3. Restrict logged-in users from accessing auth and referral routes
   if (sessionToken && isGuestOnlyRoute) {
-    return NextResponse.redirect(new URL("/dashboard/occupancy", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // 4. Allow public paths (home page, or guest-only routes for non-logged-in users)
