@@ -45,6 +45,13 @@ export const invoiceStatusEnum = pgEnum("invoice_status", [
   "OVERDUE",
 ]);
 
+export const enquiryStatusEnum = pgEnum("enquiry_status", [
+  "UNREAD",
+  "CONTACTED",
+  "CONVERTED",
+  "NOT_INTERESTED",
+]);
+
 // Users Table (With points, uniqueReferralCode, and role)
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -301,6 +308,24 @@ export const invoices = pgTable(
   ],
 );
 
+export const enquiries = pgTable("enquiry", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "restrict" }),
+  name: text("name").notNull(),
+  contactNo: text("contact_no").notNull(),
+  email: text("email").notNull(),
+  roomType: roomTypeEnum("room_type").notNull().default("2-Sharing"),
+  message: text("message"),
+  status: enquiryStatusEnum("status").notNull().default("UNREAD"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // --- Relations ---
 export const usersRelations = relations(user, ({ many }) => ({
   referralsMade: many(referrals, { relationName: "referrer" }),
@@ -308,6 +333,7 @@ export const usersRelations = relations(user, ({ many }) => ({
   properties: many(properties),
   customers: many(customers),
   bookings: many(bookings),
+  enquiries: many(enquiries),
 }));
 
 export const referralsRelations = relations(referrals, ({ one, many }) => ({
@@ -342,6 +368,7 @@ export const propertiesRelations = relations(properties, ({ one, many }) => ({
   customers: many(customers),
   bookings: many(bookings),
   invoices: many(invoices),
+  enquiries: many(enquiries),
 }));
 
 export const floorsRelations = relations(floors, ({ one, many }) => ({
@@ -417,6 +444,14 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   }),
 }));
 
+export const enquiriesRelations = relations(enquiries, ({ one }) => ({
+  owner: one(user, { fields: [enquiries.ownerId], references: [user.id] }),
+  property: one(properties, {
+    fields: [enquiries.propertyId],
+    references: [properties.id],
+  }),
+}));
+
 // Types
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
@@ -425,3 +460,5 @@ export type ReferralHistory = typeof referralHistories.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
+export type Enquiry = typeof enquiries.$inferSelect;
+export type NewEnquiry = typeof enquiries.$inferInsert;

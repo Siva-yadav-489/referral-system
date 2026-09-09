@@ -16,7 +16,13 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Building2, LayoutDashboard, BedSingle, Receipt } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  BedSingle,
+  Receipt,
+  MessageSquare,
+} from "lucide-react";
 
 const navItems = [
   {
@@ -41,6 +47,12 @@ const navItems = [
     title: "Billing",
     url: "/admin/billing",
     icon: Receipt,
+    exact: false,
+  },
+  {
+    title: "Enquiries",
+    url: "/admin/enquiries",
+    icon: MessageSquare,
     exact: false,
   },
 ];

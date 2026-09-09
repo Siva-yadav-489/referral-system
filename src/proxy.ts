@@ -12,7 +12,7 @@ const BYPASS_PREFIXES = [
 /**
  * Routes intended only for unauthenticated guests (auth & referral flows).
  */
-const GUEST_ONLY_ROUTES = ["/login", "/signup"];
+const GUEST_ONLY_ROUTES = ["/login", "/signup", "/api/enquiries"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

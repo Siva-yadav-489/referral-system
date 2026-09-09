@@ -21,6 +21,11 @@ import {
   zodUpdateInvoiceStatusSchema,
   zodGetInvoicesFilterSchema,
 } from "./billing/billing.types";
+import { EnquiryService } from "./enquiry/enquiry.service";
+import {
+  zodGetEnquiriesFilterSchema,
+  zodUpdateEnquiryStatusSchema,
+} from "./enquiry/enquiry.types";
 import { z } from "zod";
 
 async function getAdminOwnerId(): Promise<string> {
@@ -339,5 +344,41 @@ export async function generateMonthlyInvoicesAction() {
     return await BillingService.generateMonthlyInvoices(ownerId);
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed" };
+  }
+}
+
+// -------------------------------------------------------------
+// ENQUIRY ACTIONS
+// -------------------------------------------------------------
+export async function getEnquiriesAction(
+  filter?: z.infer<typeof zodGetEnquiriesFilterSchema>,
+) {
+  try {
+    const ownerId = await getAdminOwnerId();
+    return await EnquiryService.getOwnerEnquiries(ownerId, filter);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to load enquiries",
+    };
+  }
+}
+
+export async function updateEnquiryStatusAction(
+  enquiryId: string,
+  input: z.infer<typeof zodUpdateEnquiryStatusSchema>,
+) {
+  try {
+    const ownerId = await getAdminOwnerId();
+    return await EnquiryService.updateEnquiryStatus(
+      ownerId,
+      enquiryId,
+      input.status,
+    );
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update status",
+    };
   }
 }
