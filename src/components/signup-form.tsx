@@ -36,6 +36,7 @@ import {
   Gift,
   Loader2,
 } from "lucide-react";
+import Logo from "./Logo";
 
 interface FormErrors {
   name?: string;
@@ -200,7 +201,8 @@ export function SignupForm({
         {step === "details" ? (
           <>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <Logo />
+              <div className="flex items-center justify-between mt-5">
                 <CardTitle>Create an account</CardTitle>
                 {hasInitialRef && (
                   <Badge

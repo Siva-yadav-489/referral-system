@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import Logo from "./Logo";
 
 interface FormErrors {
   email?: string;
@@ -103,7 +104,8 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <Logo />
+          <CardTitle className="mt-5">Login to your account</CardTitle>
           <CardDescription>
             Enter your email below to login to your account
           </CardDescription>

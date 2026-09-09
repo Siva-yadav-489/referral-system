@@ -34,21 +34,25 @@ function HomeContent() {
 
       <h1 className="text-4xl sm:text-6xl font-black text-foreground tracking-tight max-w-4xl leading-tight">
         Modern PG Living with{" "}
-        <span className="text-primary">Smart Occupancy & Referrals</span>
+        <span className="text-primary">
+          Smart Occupancy
+          {/* & Referrals */}
+        </span>
       </h1>
 
       <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-6 leading-relaxed">
         Explore floor-by-floor room availability, reserve single or shared PG
-        beds in real-time, and earn instant rewards by inviting your friends!
+        beds in real-time.
+        {/* and earn instant rewards by inviting your friends! */}
       </p>
 
-      <div className="flex flex-col sm:flex-row items-center gap-3.5 mt-8 w-full max-w-md sm:max-w-none justify-center">
+      {/* <div className="flex flex-col sm:flex-row items-center gap-3.5 mt-8 w-full max-w-md sm:max-w-none justify-center">
         {isAdmin ? (
           <Link
             href="/admin"
             className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
-            {/* <ShieldCheck className="w-4 h-4" /> */}
+            <ShieldCheck className="w-4 h-4" /> 
             Go to Dashboard
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -57,11 +61,24 @@ function HomeContent() {
             href="/dashboard/referrals"
             className="w-full sm:w-auto bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
-            {/* <Gift className="w-4 h-4" /> */}
+            <Gift className="w-4 h-4" />
             Go to Dashboard
           </Link>
-        )}
-      </div>
+        )} 
+      </div>*/}
+      <Link
+        href={
+          !session
+            ? "/login?callbackUrl=/admin"
+            : isAdmin
+              ? "/admin"
+              : "/dashboard/referrals"
+        }
+        className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3.5 mt-8 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+      >
+        Go to Dashboard
+        <ArrowRight className="w-4 h-4" />
+      </Link>
     </main>
   );
 }
