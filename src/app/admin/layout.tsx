@@ -17,8 +17,12 @@ export default async function AdminLayout({
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     redirect("/");
+  }
+
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard/referrals");
   }
 
   return (
@@ -36,4 +40,3 @@ export default async function AdminLayout({
     </SidebarProvider>
   );
 }
-

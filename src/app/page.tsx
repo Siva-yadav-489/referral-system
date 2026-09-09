@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, AlertCircle, Gift, ShieldCheck } from "lucide-react";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useSession } from "@/lib/auth-client";
 
@@ -48,8 +48,8 @@ function HomeContent() {
             href="/admin"
             className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
-            <ShieldCheck className="w-4 h-4" />
-            Go to Admin Dashboard
+            {/* <ShieldCheck className="w-4 h-4" /> */}
+            Go to Dashboard
             <ArrowRight className="w-4 h-4" />
           </Link>
         ) : (
@@ -57,8 +57,8 @@ function HomeContent() {
             href="/dashboard/referrals"
             className="w-full sm:w-auto bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border font-semibold px-6 py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
-            <Gift className="w-4 h-4" />
-            Referral Dashboard
+            {/* <Gift className="w-4 h-4" /> */}
+            Go to Dashboard
           </Link>
         )}
       </div>

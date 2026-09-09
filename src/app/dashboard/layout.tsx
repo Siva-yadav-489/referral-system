@@ -17,8 +17,12 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "USER") {
-    redirect("/"); // Or redirect to a 403 Forbidden page
+  if (!session) {
+    redirect("/");
+  }
+
+  if (session.user.role !== "USER") {
+    redirect("/admin");
   }
   return (
     <SidebarProvider
