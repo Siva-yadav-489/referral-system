@@ -1,10 +1,20 @@
 "use client";
 
-import { Calendar, CheckCircle2, Clock, Loader2, User } from "lucide-react";
+import {
+  Bed,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Phone,
+  User,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InvoiceWithDetails } from "@/app/actions/billing/billing.types";
+import { format } from "date-fns";
 
 interface InvoiceCardProps {
   invoice: InvoiceWithDetails;
@@ -23,17 +33,16 @@ export function InvoiceCard({
   const isUpdating = updatingId === inv.id;
 
   return (
-    <Card className="bg-card border-border hover:border-border/80 transition-colors shadow-sm">
+    <Card className="bg-card border-border hover:border-border/80 transition-colors shadow-sm py-0">
       <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left: Tenant & Period details */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-base text-foreground">
+            <span className="font-bold text-base text-foreground flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
               {inv.booking?.customer?.name || "Tenant"}
             </span>
-            <span className="text-xs text-muted-foreground">
-              • {inv.booking.property?.name}
-            </span>
+
             <Badge
               variant="outline"
               className={`text-xs ${
@@ -55,19 +64,32 @@ export function InvoiceCard({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                {inv.booking.property?.name}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Bed className="w-3.5 h-3.5 text-primary" />
+                Bed {inv.booking?.bed?.bedNumber || "N/A"}
+              </span>
+            </div>
             <span className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-primary" />
-              Bed {inv.booking?.bed?.bedNumber || "N/A"} •{" "}
+              <Phone className="w-3.5 h-3.5 text-primary" />
               {inv.booking?.customer?.contactNo || ""}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-primary" />
-              Period: {inv.servicePeriodStart} to {inv.servicePeriodEnd}
+              {format(inv.servicePeriodStart, "dd/MM/yyyy")} -{" "}
+              {format(inv.servicePeriodEnd, "dd/MM/yyyy")} ({inv.billableDays}{" "}
+              {inv.billableDays === 1 ? `day` : `days`})
             </span>
-            <span className="flex items-center gap-1.5 font-medium text-foreground/80">
+            <span className="flex items-center gap-1.5 ">
               <Clock className="w-3.5 h-3.5 text-primary" />
-              Due by: {inv.dueDate}
+              {inv.status === "PAID"
+                ? `Paid on ${format(inv.updatedAt, "dd/MM/yyyy hh:mm a")}`
+                : `Due on ${format(inv.dueDate, "dd/MM/yyyy hh:mm a")}`}
             </span>
           </div>
         </div>

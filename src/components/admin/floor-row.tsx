@@ -1,14 +1,6 @@
 "use client";
 
-import * as React from "react";
-import {
-  Layers,
-  MoreHorizontal,
-  Plus,
-  CopyPlus,
-  Trash2,
-  DoorOpen,
-} from "lucide-react";
+import { MoreHorizontal, Plus, CopyPlus, Trash2, DoorOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,32 +48,25 @@ export function FloorRow({
     floor.rooms?.reduce((acc, r) => acc + (r.beds?.length || 0), 0) || 0;
 
   return (
-    <Card className="bg-card border-border shadow-sm overflow-hidden">
+    <Card className="bg-card border-border shadow-sm overflow-hidden py-0">
       {/* Floor Row Header */}
       <CardHeader className="p-4 bg-muted/25 border-b border-border/60 flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-            <Layers className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-base font-bold text-foreground">
-                Floor {floor.floorNumber}
-              </CardTitle>
-              <Badge variant="outline" className="text-xs">
-                {roomsCount} {roomsCount === 1 ? "Room" : "Rooms"}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                {bedsCount} {bedsCount === 1 ? "Bed" : "Beds"}
-              </Badge>
-            </div>
-          </div>
+          <CardTitle className="text-lg font-bold text-foreground">
+            Floor {floor.floorNumber}
+          </CardTitle>
+          <Badge variant="outline" className="text-sm">
+            {roomsCount} {roomsCount === 1 ? "Room" : "Rooms"}
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            {bedsCount} {bedsCount === 1 ? "Bed" : "Beds"}
+          </Badge>
         </div>
 
         {/* 3-dots options menu for Floor */}
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none transition-colors"
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none transition-colors"
             aria-label={`Options for Floor ${floor.floorNumber}`}
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -90,7 +75,7 @@ export function FloorRow({
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               onClick={() => onAddRoom(floor)}
-              className="cursor-pointer text-xs"
+              className="cursor-pointer text-xs py-2"
             >
               <Plus className="w-3.5 h-3.5 mr-2 text-primary" />
               <span>Add Room</span>
@@ -98,7 +83,7 @@ export function FloorRow({
 
             <DropdownMenuItem
               onClick={() => onAddRoomsBulk(floor)}
-              className="cursor-pointer text-xs"
+              className="cursor-pointer text-xs py-2"
             >
               <CopyPlus className="w-3.5 h-3.5 mr-2 text-primary" />
               <span>Add Rooms (Bulk)</span>
@@ -108,7 +93,7 @@ export function FloorRow({
 
             <DropdownMenuItem
               onClick={() => onDeleteFloor(floor)}
-              className="cursor-pointer text-xs text-destructive focus:text-destructive"
+              className="cursor-pointer text-xs py-2 text-destructive focus:text-destructive"
             >
               <Trash2 className="w-3.5 h-3.5 mr-2" />
               <span>Delete Floor</span>
@@ -127,7 +112,8 @@ export function FloorRow({
                 No rooms on Floor {floor.floorNumber}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
-                Add single or multiple rooms in bulk to begin accepting bookings on this floor.
+                Add single or multiple rooms in bulk to begin accepting bookings
+                on this floor.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-1">
@@ -143,7 +129,7 @@ export function FloorRow({
 
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 onClick={() => onAddRoomsBulk(floor)}
                 className="text-xs h-8 cursor-pointer"
               >

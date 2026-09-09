@@ -26,6 +26,7 @@ import {
   CheckoutTenantTarget,
 } from "./checkout-tenant-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PageHeader } from "../page-header";
 
 interface BookingsClientProps {
   initialBookings: BookingWithDetails[];
@@ -99,7 +100,8 @@ export function BookingsClient({
         getPropertiesAction(),
         getAvailableBedsAction(),
       ]);
-      if (bookingsRes.success && bookingsRes.data) setBookings(bookingsRes.data);
+      if (bookingsRes.success && bookingsRes.data)
+        setBookings(bookingsRes.data);
       if (propsRes.success && propsRes.data) setProperties(propsRes.data);
       if (bedsRes.success && bedsRes.data) setAvailableBeds(bedsRes.data);
       setLoading(false);
@@ -156,8 +158,7 @@ export function BookingsClient({
 
   // Filtered bookings
   const filteredBookings = bookings.filter((b) => {
-    const matchesStatus =
-      statusFilter === "ALL" || b.status === statusFilter;
+    const matchesStatus = statusFilter === "ALL" || b.status === statusFilter;
 
     const query = searchQuery.toLowerCase();
     const matchesSearch =
@@ -179,18 +180,10 @@ export function BookingsClient({
   return (
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <BedSingle className="w-5 h-5 text-primary" />
-            Bookings &amp; Tenant Management
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage tenant check-ins, stay durations, bed assignments, and
-            checkouts.
-          </p>
-        </div>
-
+      <PageHeader
+        title="Bookings & Tenant Management"
+        description="Manage tenant check-ins, stay durations, bed assignments, and checkouts."
+      >
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -214,10 +207,10 @@ export function BookingsClient({
             New Booking
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Filter / Search Bar */}
-      <Card className="bg-card border-border shadow-sm">
+      <Card className="bg-card border-border shadow-sm py-0">
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
             {/* Search Input */}
@@ -293,9 +286,7 @@ export function BookingsClient({
         {loading && bookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-3">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <p className="text-xs text-muted-foreground">
-              Loading bookings...
-            </p>
+            <p className="text-xs text-muted-foreground">Loading bookings...</p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <Card className="bg-card border-dashed border-2 border-border py-14 text-center">

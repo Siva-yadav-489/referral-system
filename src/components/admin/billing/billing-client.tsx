@@ -19,6 +19,7 @@ import { BillingStatsCards } from "./billing-stats-cards";
 import { BillingFilterToolbar } from "./billing-filter-toolbar";
 import { InvoiceCard } from "./invoice-card";
 import { z } from "zod";
+import { PageHeader } from "../page-header";
 
 type InvoiceFilter = z.infer<typeof zodGetInvoicesFilterSchema>;
 
@@ -176,17 +177,10 @@ export function BillingClient({
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Billing &amp; Invoices
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Monthly rent generation (billed on the 1st, due by the 5th) and
-              payment updates.
-            </p>
-          </div>
-
+        <PageHeader
+          title="Billing & Invoices"
+          description="Monthly rent generation (billed on the 1st, due by the 5th) and payment updates."
+        >
           <div className="flex flex-wrap items-center gap-2.5">
             <Button
               variant="outline"
@@ -215,7 +209,7 @@ export function BillingClient({
               Run 1st-of-Month Billing
             </Button>
           </div>
-        </div>
+        </PageHeader>
 
         {/* Summary Stats Cards */}
         <BillingStatsCards invoices={filteredInvoices} />

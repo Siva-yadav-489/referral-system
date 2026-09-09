@@ -10,11 +10,11 @@ import {
   MoreVertical,
   Loader2,
   Layers,
-  MapPin,
   Phone,
   DoorOpen,
   BedSingle,
   X,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ import {
   CheckoutTenantDialog,
   CheckoutTenantTarget,
 } from "./bookings/checkout-tenant-dialog";
+import { format } from "date-fns";
 
 interface PropertyDetailViewProps {
   initialProperty: PropertyWithStructure;
@@ -114,8 +115,9 @@ export function PropertyDetailView({
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   // Active bookings & booking modal state
-  const [activeBookings, setActiveBookings] =
-    useState<BookingWithDetails[]>(initialActiveBookings);
+  const [activeBookings, setActiveBookings] = useState<BookingWithDetails[]>(
+    initialActiveBookings,
+  );
   const [checkoutTarget, setCheckoutTarget] =
     useState<CheckoutTenantTarget | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -430,18 +432,16 @@ export function PropertyDetailView({
       }
     }
   }
-  const occupancyRate =
-    totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
   return (
     <div className="space-y-6">
       {/* Reusable Header */}
       <PageHeader
         title={property.name}
-        description={property.address}
+        description={`Created on ${format(property.createdAt, "dd/MM/yyyy hh:mm a")}`}
         backLink={{ href: "/admin/properties", label: "All Properties" }}
         badge={
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs pt-1 px-2 font-semibold ">
             {totalFloors} {totalFloors === 1 ? "Floor" : "Floors"}
           </Badge>
         }
@@ -463,10 +463,10 @@ export function PropertyDetailView({
         {/* 3-dots options menu for Property */}
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="p-2 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none transition-colors"
+            className="p-1 text-foreground cursor-pointer"
             aria-label="Property Options"
           >
-            <MoreVertical className="w-4 h-4" />
+            <MoreVertical className="w-4.5 h-4.5" />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-48">
@@ -482,51 +482,39 @@ export function PropertyDetailView({
       </PageHeader>
 
       {/* Property Overview Stats Bar */}
-      <Card className="bg-card border-border shadow-xs">
+      <Card className="bg-card border-border shadow-xs py-0">
         <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
-              <span>{property.address}</span>
-            </span>
-            <span className="flex items-center gap-1.5">
+          <div className="flex items-center gap-4">
+            <span className="flex items-baseline gap-1 text-sm font-semibold text-muted-foreground">
               <Phone className="w-3.5 h-3.5 text-primary" />
               <span>{property.contactNo}</span>
+            </span>
+            <span className="flex items-baseline gap-1 text-sm font-semibold text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              <span>{property.address}</span>
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-sm font-semibold">
               <Layers className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-bold text-foreground">{totalFloors}</span>
-              <span className="text-muted-foreground">floors</span>
+              <span className="text-muted-foreground">Floors</span>
             </div>
             <span className="text-border">•</span>
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-sm font-semibold">
               <DoorOpen className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-bold text-foreground">{totalRooms}</span>
-              <span className="text-muted-foreground">rooms</span>
+              <span className="text-muted-foreground">Rooms</span>
             </div>
             <span className="text-border">•</span>
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-sm font-semibold">
               <BedSingle className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-bold text-foreground">
                 {occupiedBeds}/{totalBeds}
               </span>
-              <span className="text-muted-foreground">beds</span>
+              <span className="text-muted-foreground">Beds</span>
             </div>
-            <Badge
-              variant="outline"
-              className={`text-xs ml-1 ${
-                occupancyRate >= 80
-                  ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                  : occupancyRate >= 40
-                    ? "border-blue-500/30 text-blue-400 bg-blue-500/10"
-                    : "border-zinc-700 text-muted-foreground bg-muted/40"
-              }`}
-            >
-              {occupancyRate}%
-            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -613,6 +601,7 @@ export function PropertyDetailView({
                     })
                   }
                   required
+                  disabled
                 />
               </div>
 
@@ -840,6 +829,7 @@ export function PropertyDetailView({
                     })
                   }
                   required
+                  disabled
                 />
               </div>
 

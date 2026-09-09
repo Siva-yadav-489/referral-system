@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { InvoiceWithDetails } from "@/app/actions/billing/billing.types";
 import { updateInvoiceStatusAction } from "@/app/actions/admin-actions";
+import { format } from "date-fns";
 
 interface RecentInvoicesCardProps {
   initialInvoices: InvoiceWithDetails[];
@@ -54,21 +55,21 @@ export function RecentInvoicesCard({
   };
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
+    <Card className="bg-card border-border gap-5">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base font-bold">
             Invoices &amp; Rent Due
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-xs font-semibold">
             Monthly bills due by the 5th awaiting payment confirmation
           </CardDescription>
         </div>
         <Link
           href="/admin/billing"
           className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "text-xs h-8",
+            buttonVariants({ variant: "default", size: "sm" }),
+            "text-xs font-semibold",
           )}
         >
           View ledger
@@ -88,19 +89,19 @@ export function RecentInvoicesCard({
           </div>
         ) : (
           <div className="space-y-3">
-            {invoices.map((inv) => (
+            {invoices.slice(0, 5).map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors"
+                className="flex max-sm:flex-col max-sm:items-start max-sm:gap-2 items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors"
               >
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-foreground">
                       {inv.booking?.customer?.name || "Customer"}
                     </span>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] ${
+                      className={`text-[10px] pb-0 px-1.5 ${
                         inv.status === "PAID"
                           ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
                           : inv.status === "OVERDUE"
@@ -111,18 +112,26 @@ export function RecentInvoicesCard({
                       {inv.status}
                     </Badge>
                     {inv.isProrated && (
-                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                         Prorated
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Period: {inv.billingPeriodStart} to {inv.billingPeriodEnd} •
-                    Due: {inv.dueDate}
+                    {inv.status !== "PAID" ? (
+                      <span>
+                        generated on{" "}
+                        {format(inv.createdAt, "dd/MM/yyyy hh:mm a")}
+                      </span>
+                    ) : (
+                      <span>
+                        paid on {format(inv.updatedAt, "dd/MM/yyyy hh:mm a")}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <div className="text-right">
                     <div className="text-sm font-bold text-foreground">
                       ₹{Number(inv.amount).toLocaleString("en-IN")}

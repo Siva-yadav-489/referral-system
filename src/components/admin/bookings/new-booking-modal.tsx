@@ -41,6 +41,13 @@ export interface NewBookingModalProps {
   onSuccess?: () => Promise<void> | void;
 }
 
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isValidPhone = (phone: string) => PHONE_REGEX.test(phone);
+
+const isValidEmail = (email: string) => EMAIL_REGEX.test(email);
+
 const buildDefaultFormData = (
   propertyId: string = "",
   bedId: string = "",
@@ -161,7 +168,15 @@ export function NewBookingModal({
   };
 
   const handleFormChange = (updates: Partial<NewBookingFormData>) => {
-    setFormData((prev) => ({ ...prev, ...updates }));
+    setFormData((prev) => {
+      const next = { ...prev, ...updates };
+
+      if (updates.agreedMonthlyRent !== undefined) {
+        next.depositAmountCollected = updates.agreedMonthlyRent / 2;
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,6 +188,20 @@ export function NewBookingModal({
     }
     if (!formData.customerName.trim() || !formData.contactNo.trim()) {
       toast.error("Customer name and contact number are required");
+      return;
+    }
+    if (!isValidPhone(formData.contactNo)) {
+      toast.error("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    if (formData.email.trim() && !isValidEmail(formData.email.trim())) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (formData.agreedMonthlyRent <= 0) {
+      toast.error("Monthly rent must be greater than ₹0");
       return;
     }
 
@@ -235,7 +264,7 @@ export function NewBookingModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Property & Bed Allocation */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-muted/20 border border-border/60">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-2 rounded-lg bg-muted/20 border border-border/60">
             <div className="space-y-1.5">
               <Label htmlFor="propSelect" className="text-xs">
                 Select Property *
@@ -244,7 +273,10 @@ export function NewBookingModal({
                 id="propSelect"
                 value={formData.propertyId}
                 onChange={(e) => handlePropertyChange(e.target.value)}
-                disabled={submitting || (!!preselectedPropertyId && propertiesList.length <= 1)}
+                disabled={
+                  submitting ||
+                  (!!preselectedPropertyId && propertiesList.length <= 1)
+                }
                 className="w-full bg-background text-foreground border border-border rounded-lg text-xs p-2.5 cursor-pointer disabled:opacity-75"
                 required
               >
@@ -308,32 +340,44 @@ export function NewBookingModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="cName" className="text-xs">Full Name *</Label>
+                <Label htmlFor="cName" className="text-xs">
+                  Full Name *
+                </Label>
                 <Input
                   id="cName"
                   placeholder="e.g. Rahul Sharma"
                   value={formData.customerName}
-                  onChange={(e) => handleFormChange({ customerName: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ customerName: e.target.value })
+                  }
                   disabled={submitting}
                   required
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cPhone" className="text-xs">Contact Number *</Label>
+                <Label htmlFor="cPhone" className="text-xs">
+                  Contact Number *
+                </Label>
                 <Input
                   id="cPhone"
                   placeholder="e.g. 9876543210"
                   value={formData.contactNo}
-                  onChange={(e) => handleFormChange({ contactNo: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ contactNo: e.target.value })
+                  }
                   disabled={submitting}
                   required
+                  maxLength={10}
+                  pattern="[6-9][0-9]{9}"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="cEmail" className="text-xs">Email</Label>
+                <Label htmlFor="cEmail" className="text-xs">
+                  Email
+                </Label>
                 <Input
                   id="cEmail"
                   type="email"
@@ -341,25 +385,34 @@ export function NewBookingModal({
                   value={formData.email}
                   onChange={(e) => handleFormChange({ email: e.target.value })}
                   disabled={submitting}
+                  pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cProofType" className="text-xs">ID Proof Type</Label>
+                <Label htmlFor="cProofType" className="text-xs">
+                  ID Proof Type
+                </Label>
                 <Input
                   id="cProofType"
                   placeholder="e.g. Aadhaar / PAN / Passport"
                   value={formData.idProofType}
-                  onChange={(e) => handleFormChange({ idProofType: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ idProofType: e.target.value })
+                  }
                   disabled={submitting}
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cProofNum" className="text-xs">ID Proof Number</Label>
+                <Label htmlFor="cProofNum" className="text-xs">
+                  ID Proof Number
+                </Label>
                 <Input
                   id="cProofNum"
                   placeholder="e.g. 1234-5678-9012"
                   value={formData.idProofNumber}
-                  onChange={(e) => handleFormChange({ idProofNumber: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ idProofNumber: e.target.value })
+                  }
                   disabled={submitting}
                 />
               </div>
@@ -371,8 +424,12 @@ export function NewBookingModal({
                   id="cEmerg"
                   placeholder="e.g. 9123456780"
                   value={formData.emergencyContact}
-                  onChange={(e) => handleFormChange({ emergencyContact: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ emergencyContact: e.target.value })
+                  }
                   disabled={submitting}
+                  maxLength={10}
+                  pattern="[6-9][0-9]{9}"
                 />
               </div>
             </div>
@@ -386,51 +443,66 @@ export function NewBookingModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="cost" className="text-xs">Agreed Rent / Mo (₹) *</Label>
+                <Label htmlFor="cost" className="text-xs">
+                  Agreed Rent/Month (₹) *
+                </Label>
                 <Input
                   id="cost"
                   type="number"
                   min={100}
                   value={formData.agreedMonthlyRent}
                   onChange={(e) =>
-                    handleFormChange({ agreedMonthlyRent: parseFloat(e.target.value) || 0 })
+                    handleFormChange({
+                      agreedMonthlyRent: parseFloat(e.target.value) || 0,
+                    })
                   }
                   disabled={submitting}
                   required
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="deposit" className="text-xs">Security Deposit (₹) *</Label>
+                <Label htmlFor="deposit" className="text-xs">
+                  Security Deposit (₹) *
+                </Label>
                 <Input
                   id="deposit"
                   type="number"
                   min={0}
                   value={formData.depositAmountCollected}
+                  // onChange={(e) =>
+                  //   handleFormChange({ depositAmountCollected: parseFloat(e.target.value) || 0 })
+                  // }
+                  // disabled={submitting}
+                  disabled
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sDate" className="text-xs">
+                  Start Date *
+                </Label>
+                <Input
+                  id="sDate"
+                  type="date"
+                  value={formData.startDate}
                   onChange={(e) =>
-                    handleFormChange({ depositAmountCollected: parseFloat(e.target.value) || 0 })
+                    handleFormChange({ startDate: e.target.value })
                   }
                   disabled={submitting}
                   required
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="sDate" className="text-xs">Start Date *</Label>
-                <Input
-                  id="sDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleFormChange({ startDate: e.target.value })}
-                  disabled={submitting}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="eDate" className="text-xs">End Date *</Label>
+                <Label htmlFor="eDate" className="text-xs">
+                  End Date *
+                </Label>
                 <Input
                   id="eDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => handleFormChange({ endDate: e.target.value })}
+                  onChange={(e) =>
+                    handleFormChange({ endDate: e.target.value })
+                  }
                   disabled={submitting}
                   required
                 />

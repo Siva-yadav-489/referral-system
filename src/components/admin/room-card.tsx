@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react";
 import { DoorOpen, MoreHorizontal, Edit3, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +34,8 @@ export function RoomCard({
   onDeleteBed,
   onBookBed,
 }: RoomCardProps) {
-  const occupiedCount = room.beds?.filter((b) => b.status === "OCCUPIED").length || 0;
+  const occupiedCount =
+    room.beds?.filter((b) => b.status === "OCCUPIED").length || 0;
   const totalBeds = room.beds?.length || 0;
 
   return (
@@ -45,18 +44,15 @@ export function RoomCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-            <DoorOpen className="w-4 h-4" />
+            <DoorOpen className="size-6" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm text-foreground">
-                Room {room.roomNumber}
+                Room {room.roomNumber} ({room.type})
               </span>
-              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
-                {room.type}
-              </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
               {occupiedCount}/{totalBeds} beds occupied
             </p>
           </div>
@@ -74,7 +70,7 @@ export function RoomCard({
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem
               onClick={() => onEditRoom(room)}
-              className="cursor-pointer text-xs"
+              className="cursor-pointer text-xs py-1.5"
             >
               <Edit3 className="w-3.5 h-3.5 mr-2" />
               <span>Edit Room</span>
@@ -84,7 +80,7 @@ export function RoomCard({
 
             <DropdownMenuItem
               onClick={() => onDeleteRoom(room)}
-              className="cursor-pointer text-xs text-destructive focus:text-destructive"
+              className="cursor-pointer text-xs py-1.5 text-destructive focus:text-destructive"
             >
               <Trash2 className="w-3.5 h-3.5 mr-2" />
               <span>Delete Room</span>
@@ -94,17 +90,13 @@ export function RoomCard({
       </div>
 
       {/* Beds Section: Beds presented in rows */}
-      <div className="space-y-1.5 pt-2 border-t border-border/60">
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Beds ({totalBeds}/{room.capacity})
-        </div>
-
+      <div className="space-y-2 pt-3 border-t border-border/60">
         {totalBeds === 0 ? (
           <p className="text-xs text-muted-foreground py-2 text-center">
             No beds configured in this room.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {room.beds.map((bed) => (
               <BedItem
                 key={bed.id}

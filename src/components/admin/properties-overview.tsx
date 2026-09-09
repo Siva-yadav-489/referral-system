@@ -107,7 +107,7 @@ export function PropertiesOverview({
 
       {/* Properties Grid or Empty State */}
       {properties.length === 0 ? (
-        <Card className="bg-card border-dashed border-2 border-border py-16 text-center">
+        <Card className="bg-card border-dashed border-2 border-border text-center">
           <CardContent className="flex flex-col items-center justify-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-1">
               <Building2 className="w-6 h-6" />

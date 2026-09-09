@@ -18,6 +18,7 @@ import { EnquiriesStatsCards } from "./enquiries-stats-cards";
 import { EnquiriesFilterToolbar } from "./enquiries-filter-toolbar";
 import { EnquiryCard } from "./enquiry-card";
 import { z } from "zod";
+import { PageHeader } from "../page-header";
 
 type EnquiryFilter = z.infer<typeof zodGetEnquiriesFilterSchema>;
 
@@ -158,17 +159,10 @@ export function EnquiriesClient({
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Enquiries &amp; Leads
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              View, filter, and track prospective tenant leads for your
-              properties.
-            </p>
-          </div>
-
+        <PageHeader
+          title="Enquiries & Leads"
+          description="View, filter, and track prospective tenant leads for your properties."
+        >
           <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
@@ -183,7 +177,7 @@ export function EnquiriesClient({
               Refresh
             </Button>
           </div>
-        </div>
+        </PageHeader>
 
         {/* Summary Stats Cards */}
         <EnquiriesStatsCards enquiries={filteredEnquiries} />
@@ -223,8 +217,8 @@ export function EnquiriesClient({
                 No enquiries found
               </h3>
               <p className="text-xs text-muted-foreground max-w-sm">
-                No enquiries match your current filters. Try changing or clearing
-                the filters above to see more leads.
+                No enquiries match your current filters. Try changing or
+                clearing the filters above to see more leads.
               </p>
             </CardContent>
           </Card>

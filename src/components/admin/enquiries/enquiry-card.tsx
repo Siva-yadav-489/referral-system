@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Building2,
   Calendar,
   Check,
   CheckCircle2,
@@ -10,6 +11,7 @@ import {
   MessageSquare,
   MoreVertical,
   Phone,
+  User,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EnquiryWithDetails } from "@/app/actions/enquiry/enquiry.types";
+import { format } from "date-fns";
 
 interface EnquiryCardProps {
   enquiry: EnquiryWithDetails;
@@ -40,17 +43,6 @@ export function EnquiryCard({
   onUpdateStatus,
 }: EnquiryCardProps) {
   const isUpdating = updatingId === enquiry.id;
-
-  const formattedDate = new Date(enquiry.createdAt).toLocaleDateString(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-  );
 
   const getStatusBadge = () => {
     switch (enquiry.status) {
@@ -98,17 +90,19 @@ export function EnquiryCard({
   };
 
   return (
-    <Card className="bg-card border-border hover:border-border/80 transition-colors shadow-sm">
-      <CardContent className="p-4 space-y-3">
+    <Card className="bg-card border-border hover:border-border/80 transition-colors shadow-sm py-0">
+      <CardContent className="p-4 space-y-1">
         <div className=" flex flex-col md:flex-row md:items-start justify-between gap-4">
           {/* Left: Enquiry details */}
           <div className="space-y-2.5 flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-base text-foreground">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-bold text-base text-foreground flex items-center gap-1.5">
+                <User className="w-5 h-5" />
                 {enquiry.name}
               </span>
-              <span className="text-xs text-muted-foreground">
-                • {enquiry.property?.name || "Property"}
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5" />{" "}
+                {enquiry.property?.name || "Property"}
               </span>
               <Badge
                 variant="outline"
@@ -128,7 +122,7 @@ export function EnquiryCard({
                 size="sm"
                 disabled={isUpdating}
                 onClick={() => onUpdateStatus(enquiry.id, "CONTACTED")}
-                className="text-xs h-8 text-amber-400 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
+                className="text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
               >
                 {isUpdating ? (
                   <Loader2 className="w-3 h-3 animate-spin mr-1" />
@@ -281,11 +275,11 @@ export function EnquiryCard({
 
           <span className="flex items-center gap-1.5 text-muted-foreground truncate">
             <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>{formattedDate}</span>
+            <span>{format(enquiry.createdAt, "dd/MM/yyyy hh:mm a")}</span>
           </span>
           {/* Optional Message */}
           {enquiry.message && (
-            <div className="mt-2 text-xs bg-muted/40 border border-border/50 rounded-lg p-2.5 text-foreground/90 flex items-start gap-2">
+            <div className="mt-2 text-xs bg-muted/40 border border-border/50 rounded-lg px-2 py-1.5 text-foreground/90 flex items-start gap-2">
               <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <p className="line-clamp-1 truncate italic text-muted-foreground">
                 &ldquo;{enquiry.message}&rdquo;
