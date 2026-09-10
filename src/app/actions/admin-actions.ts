@@ -66,7 +66,8 @@ export async function getDashboardStatsAction() {
       totalRooms += rooms.length;
     }
 
-    const activeBookings = await BookingModel.getActiveBookingsByOwnerId(ownerId);
+    const activeBookings =
+      await BookingModel.getActiveBookingsByOwnerId(ownerId);
     const allBookings = await BookingModel.getAllBookingsByOwnerId(ownerId);
     const invoices = await BillingModel.getInvoicesByOwnerId(ownerId);
 
@@ -104,7 +105,10 @@ export async function getDashboardStatsAction() {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to load dashboard statistics",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load dashboard statistics",
     };
   }
 }
@@ -117,7 +121,10 @@ export async function getPropertiesAction() {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.getProperties(ownerId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -126,16 +133,24 @@ export async function getPropertyDetailsAction(propertyId: string) {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.getPropertyDetails(ownerId, propertyId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
-export async function createPropertyAction(input: z.infer<typeof zodCreatePropertySchema>) {
+export async function createPropertyAction(
+  input: z.infer<typeof zodCreatePropertySchema>,
+) {
   try {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.createProperty(ownerId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -147,7 +162,10 @@ export async function updatePropertyAction(
     const ownerId = await getAdminOwnerId();
     return await PropertyService.updateProperty(ownerId, propertyId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -156,16 +174,24 @@ export async function deletePropertyAction(propertyId: string) {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.deleteProperty(ownerId, propertyId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
-export async function addFloorAction(input: z.infer<typeof zodCreateFloorSchema>) {
+export async function addFloorAction(
+  input: z.infer<typeof zodCreateFloorSchema>,
+) {
   try {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.addFloor(ownerId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -174,16 +200,24 @@ export async function deleteFloorAction(floorId: string) {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.deleteFloor(ownerId, floorId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
-export async function addRoomAction(input: z.infer<typeof zodCreateRoomSchema>) {
+export async function addRoomAction(
+  input: z.infer<typeof zodCreateRoomSchema>,
+) {
   try {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.addRoom(ownerId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -197,19 +231,25 @@ export async function addRoomsBulkAction(input: {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.addRoomsBulk(ownerId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
-export async function updateRoomAction(
+export async function updateRoomTypeAction(
   roomId: string,
-  input: Partial<z.infer<typeof zodCreateRoomSchema>>,
+  roomType: z.infer<typeof zodCreateRoomSchema>["type"],
 ) {
   try {
     const ownerId = await getAdminOwnerId();
-    return await PropertyService.updateRoom(ownerId, roomId, input);
+    return await PropertyService.updateRoomType(ownerId, roomId, roomType);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -218,7 +258,10 @@ export async function deleteRoomAction(roomId: string) {
     const ownerId = await getAdminOwnerId();
     return await PropertyService.deleteRoom(ownerId, roomId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -230,16 +273,10 @@ export async function updateBedStatusAction(
     const ownerId = await getAdminOwnerId();
     return await PropertyService.updateBedStatus(ownerId, bedId, status);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
-  }
-}
-
-export async function deleteBedAction(bedId: string) {
-  try {
-    const ownerId = await getAdminOwnerId();
-    return await PropertyService.deleteBed(ownerId, bedId);
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -251,7 +288,10 @@ export async function getBookingsAction(propertyId?: string) {
     const ownerId = await getAdminOwnerId();
     return await BookingService.getAllBookings(ownerId, propertyId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -260,7 +300,10 @@ export async function getActiveBookingsAction(propertyId?: string) {
     const ownerId = await getAdminOwnerId();
     return await BookingService.getActiveBookings(ownerId, propertyId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -269,16 +312,24 @@ export async function getAvailableBedsAction(propertyId?: string) {
     const ownerId = await getAdminOwnerId();
     return await BookingService.getAvailableBeds(ownerId, propertyId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
-export async function createBookingAction(input: z.infer<typeof zodCreateBookingSchema>) {
+export async function createBookingAction(
+  input: z.infer<typeof zodCreateBookingSchema>,
+) {
   try {
     const ownerId = await getAdminOwnerId();
     return await BookingService.createBooking(ownerId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -290,7 +341,10 @@ export async function extendStayAction(
     const ownerId = await getAdminOwnerId();
     return await BookingService.extendStay(ownerId, bookingId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -299,7 +353,10 @@ export async function checkoutTenantAction(bookingId: string) {
     const ownerId = await getAdminOwnerId();
     return await BookingService.checkoutTenant(ownerId, bookingId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -308,7 +365,10 @@ export async function cancelBookingAction(bookingId: string) {
     const ownerId = await getAdminOwnerId();
     return await BookingService.cancelBooking(ownerId, bookingId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -322,7 +382,10 @@ export async function getInvoicesAction(
     const ownerId = await getAdminOwnerId();
     return await BillingService.getOwnerInvoices(ownerId, filter);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -334,7 +397,10 @@ export async function updateInvoiceStatusAction(
     const ownerId = await getAdminOwnerId();
     return await BillingService.updateInvoiceStatus(ownerId, invoiceId, input);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -343,7 +409,10 @@ export async function generateMonthlyInvoicesAction() {
     const ownerId = await getAdminOwnerId();
     return await BillingService.generateMonthlyInvoices(ownerId);
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed",
+    };
   }
 }
 
@@ -359,7 +428,8 @@ export async function getEnquiriesAction(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to load enquiries",
+      error:
+        error instanceof Error ? error.message : "Failed to load enquiries",
     };
   }
 }

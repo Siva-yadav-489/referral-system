@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { rooms, beds, properties, floors } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import {
   zodCreatePropertySchema,
@@ -120,6 +120,9 @@ export class PropertyService {
   ) {
     try {
       const validatedData = zodCreateFloorSchema.parse(input);
+      if (!ownerId) {
+        throw new Error("Unauthorized");
+      }
       const property = await PropertyModel.getPropertyById(
         validatedData.propertyId,
       );
@@ -129,16 +132,44 @@ export class PropertyService {
       if (property.ownerId !== ownerId) {
         throw new Error("Unauthorized");
       }
+
+      const existingFloors = await PropertyModel.getFloorsByPropertyId(
+        property.id,
+      );
+
+      if (existingFloors.length >= 7) {
+        throw new Error("This property already has the maximum of 7 floors.");
+      }
+
+      const floorNumber = validatedData.floorNumber;
+
+      const alreadyExists = existingFloors.some(
+        (floor) => floor.floorNumber === floorNumber,
+      );
+
+      if (alreadyExists) {
+        throw new Error(`Floor ${floorNumber} already exists.`);
+      }
+
       const newFloor = await PropertyModel.createFloor({
         id: crypto.randomUUID(),
-        ...validatedData,
+        propertyId: property.id,
+        floorNumber,
       });
-      return { success: true, data: newFloor };
+
+      return {
+        success: true,
+        data: newFloor,
+      };
     } catch (error) {
+      console.error("PropertyService.addFloor:", error);
+
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Failed to create floor",
+          error instanceof Error
+            ? error.message
+            : "Unable to add floor. Please try again.",
       };
     }
   }
@@ -173,6 +204,9 @@ export class PropertyService {
   ): Promise<RoomResponse> {
     try {
       const validated = zodCreateRoomSchema.parse(input);
+      if (!ownerId) {
+        throw new Error("Unauthorized");
+      }
       const floor = await PropertyModel.getFloorById(input.floorId);
       if (!floor) {
         throw new Error("Floor not found");
@@ -183,6 +217,34 @@ export class PropertyService {
       }
       if (property.ownerId !== ownerId) {
         throw new Error("Unauthorized");
+      }
+
+      const existingRooms = await PropertyModel.getAllRoomsByFloorId(floor.id);
+
+      if (existingRooms.length >= 10) {
+        throw new Error(
+          `Floor ${floor.floorNumber} already has the maximum of 10 rooms.`,
+        );
+      }
+
+      const roomNumber = validated.roomNumber;
+
+      const roomAlreadyExists = existingRooms.some(
+        (room) => room.roomNumber === roomNumber,
+      );
+
+      if (roomAlreadyExists) {
+        throw new Error(
+          `Room ${roomNumber} already exists on Floor ${floor.floorNumber}.`,
+        );
+      }
+
+      const expectedCapacity = validated.type === "2-Sharing" ? 2 : 3;
+
+      if (validated.capacity !== expectedCapacity) {
+        throw new Error(
+          `${validated.type} rooms must have exactly ${expectedCapacity} beds.`,
+        );
       }
 
       return await db.transaction(async (tx) => {
@@ -232,30 +294,111 @@ export class PropertyService {
     }
   }
 
-  static async updateRoom(
+  static async updateRoomType(
     ownerId: string,
     roomId: string,
-    input: Partial<z.infer<typeof zodCreateRoomSchema>>,
+    roomType: z.infer<typeof zodCreateRoomSchema>["type"],
   ) {
     try {
-      const validatedData = zodCreateRoomSchema.partial().parse(input);
+      const validatedData = z
+        .object({ type: zodCreateRoomSchema.shape.type })
+        .parse({ type: roomType });
+
       const room = await PropertyModel.getRoomById(roomId);
+
       if (!room) {
-        throw new Error("Room not found");
+        throw new Error("Room not found.");
       }
+
       const property = await PropertyModel.getPropertyById(room.propertyId);
+
       if (!property) {
-        throw new Error("Property not found");
+        throw new Error("Property not found.");
       }
+
       if (property.ownerId !== ownerId) {
-        throw new Error("Unauthorized");
+        throw new Error("Unauthorized.");
       }
-      const updatedRoom = await PropertyModel.updateRoom(roomId, validatedData);
-      return { success: true, data: updatedRoom };
+
+      const currentType = room.type;
+      const newType = validatedData.type ?? currentType;
+
+      const oldCapacity = currentType === "2-Sharing" ? 2 : 3;
+      const newCapacity = newType === "2-Sharing" ? 2 : 3;
+
+      const typeChanged = currentType !== newType;
+
+      if (!typeChanged) {
+        return {
+          success: false,
+          error: "Type is already the same.",
+        };
+      }
+
+      const updatedRoom = await db.transaction(async (tx) => {
+        const existingBeds = await tx
+          .select()
+          .from(beds)
+          .where(eq(beds.roomId, roomId))
+          .orderBy(desc(beds.bedNumber));
+
+        /** 3-Sharing -> 2-Sharing */
+        if (oldCapacity === 3 && newCapacity === 2) {
+          const removableBed = existingBeds
+            .filter((bed) => bed.status === "VACANT")
+            .sort((a, b) => Number(b.bedNumber) - Number(a.bedNumber))[0];
+
+          if (!removableBed) {
+            throw new Error(
+              "Cannot change to 2-Sharing because the extra bed is occupied.",
+            );
+          }
+
+          await tx.delete(beds).where(eq(beds.id, removableBed.id));
+        }
+
+        /** 2-Sharing -> 3-Sharing */
+        if (oldCapacity === 2 && newCapacity === 3) {
+          const nextBedIndex = existingBeds.length + 1;
+          console.log("nextBedIndex", nextBedIndex);
+
+          await tx.insert(beds).values({
+            id: crypto.randomUUID(),
+            roomId,
+            propertyId: room.propertyId,
+            floorId: room.floorId,
+            bedNumber: `${room.roomNumber}-${String.fromCharCode(
+              64 + nextBedIndex,
+            )}`,
+            status: "VACANT",
+          });
+        }
+
+        /** Update room */
+        const [updated] = await tx
+          .update(rooms)
+          .set({
+            type: newType,
+            capacity: newCapacity,
+            updatedAt: new Date(),
+          })
+          .where(eq(rooms.id, roomId))
+          .returning();
+
+        return updated;
+      });
+
+      return {
+        success: true,
+        data: updatedRoom,
+      };
     } catch (error) {
+      console.error("updateRoom failed:", error);
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to update room",
+        error:
+          error instanceof Error ? error.message : "Failed to update room.",
       };
     }
   }
@@ -293,7 +436,11 @@ export class PropertyService {
     status: "VACANT" | "OCCUPIED" | "MAINTENANCE",
   ) {
     try {
-      if (status !== "MAINTENANCE" && status !== "VACANT" && status !== "OCCUPIED") {
+      if (
+        status !== "MAINTENANCE" &&
+        status !== "VACANT" &&
+        status !== "OCCUPIED"
+      ) {
         throw new Error("Invalid status");
       }
       const bed = await PropertyModel.getBedById(bedId);

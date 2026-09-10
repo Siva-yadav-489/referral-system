@@ -27,7 +27,6 @@ interface FloorRowProps {
   onDeleteRoom: (room: Room & { beds: Bed[] }) => void;
   onToggleMaintenance: (bed: Bed) => void;
   onMarkVacant: (bed: Bed) => void;
-  onDeleteBed: (bed: Bed) => void;
   onBookBed?: (bed: Bed) => void;
 }
 
@@ -40,7 +39,6 @@ export function FloorRow({
   onDeleteRoom,
   onToggleMaintenance,
   onMarkVacant,
-  onDeleteBed,
   onBookBed,
 }: FloorRowProps) {
   const roomsCount = floor.rooms?.length || 0;
@@ -148,7 +146,6 @@ export function FloorRow({
                 onDeleteRoom={onDeleteRoom}
                 onToggleMaintenance={onToggleMaintenance}
                 onMarkVacant={onMarkVacant}
-                onDeleteBed={onDeleteBed}
                 onBookBed={onBookBed}
               />
             ))}

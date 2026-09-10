@@ -41,10 +41,9 @@ import {
   deleteFloorAction,
   addRoomAction,
   addRoomsBulkAction,
-  updateRoomAction,
+  updateRoomTypeAction,
   deleteRoomAction,
   updateBedStatusAction,
-  deleteBedAction,
   deletePropertyAction,
   getPropertyDetailsAction,
   getActiveBookingsAction,
@@ -114,6 +113,23 @@ export function PropertyDetailView({
   });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  // Floor choice modal state
+  const [floorChoiceOpen, setFloorChoiceOpen] = useState(false);
+  const [floorChoiceMode, setFloorChoiceMode] = useState<"next" | "specific">(
+    "next",
+  );
+  const [selectedFloorNumber, setSelectedFloorNumber] = useState<number | null>(
+    null,
+  );
+
+  // Room position mode state
+  const [roomPositionMode, setRoomPositionMode] = useState<"next" | "specific">(
+    "next",
+  );
+  const [selectedRoomPosition, setSelectedRoomPosition] = useState<
+    number | null
+  >(null);
+
   // Active bookings & booking modal state
   const [activeBookings, setActiveBookings] = useState<BookingWithDetails[]>(
     initialActiveBookings,
@@ -139,30 +155,126 @@ export function PropertyDetailView({
     }
   };
 
-  // 1. Add Floor (capped at 7)
-  const handleAddFloor = async () => {
-    const currentFloorsCount = property.floors?.length || 0;
-    if (currentFloorsCount >= 7) {
-      toast.error("Limit reached: A property can have at most 7 floors.");
+  // ─── Friendly error helper ────────────────────────────────────────────────
+  const friendlyError = (raw: string | undefined, fallback: string): string => {
+    if (!raw) return fallback;
+    const lower = raw.toLowerCase();
+    if (
+      lower.includes("unique") ||
+      lower.includes("duplicate key") ||
+      lower.includes("unique_floor_room") ||
+      lower.includes("already exists")
+    ) {
+      return "This entry already exists. Please choose a different number.";
+    }
+    if (lower.includes("unauthorized"))
+      return "You are not authorized to perform this action.";
+    if (lower.includes("not found"))
+      return "The requested item could not be found.";
+    if (/error:|sqlstate|drizzle|pg_|23505|23000/.test(lower)) return fallback;
+    return raw;
+  };
+
+  const getAvailableFloorNumbers = (): number[] => {
+    const used = new Set((property.floors ?? []).map((f) => f.floorNumber));
+    return Array.from({ length: 7 }, (_, i) => i + 1).filter(
+      (n) => !used.has(n),
+    );
+  };
+
+  // ─── Room helpers ─────────────────────────────────────────────────────────
+  const getRoomSuffix = (
+    floorNumber: number,
+    roomNumber: string,
+  ): number | null => {
+    const trimmed = roomNumber.trim();
+    const floorPrefix = String(floorNumber);
+    if (trimmed.startsWith(floorPrefix)) {
+      const rest = trimmed.slice(floorPrefix.length);
+      const match = rest.match(/^(\d+)/);
+      if (match) {
+        const suffix = parseInt(match[1]);
+        return isNaN(suffix) ? null : suffix;
+      }
+    }
+    const match = trimmed.match(/(\d{1,2})$/);
+    return match ? parseInt(match[1]) : null;
+  };
+
+  const getNextRoomNumber = (floor: Floor): string | null => {
+    const floorNum = floor.floorNumber;
+    const existingRooms =
+      property.floors?.find((f) => f.id === floor.id)?.rooms ?? [];
+    const usedSuffixes = new Set(
+      existingRooms
+        .map((r) => getRoomSuffix(floorNum, r.roomNumber))
+        .filter((v): v is number => v !== null),
+    );
+    for (let i = 1; i <= 10; i++) {
+      if (!usedSuffixes.has(i)) {
+        return `${floorNum}${String(i).padStart(2, "0")}`;
+      }
+    }
+    return null;
+  };
+
+  const getAvailableRoomPositions = (floor: Floor): number[] => {
+    const floorNum = floor.floorNumber;
+    const existingRooms =
+      property.floors?.find((f) => f.id === floor.id)?.rooms ?? [];
+    const usedSuffixes = new Set(
+      existingRooms
+        .map((r) => getRoomSuffix(floorNum, r.roomNumber))
+        .filter((v): v is number => v !== null),
+    );
+    return Array.from({ length: 10 }, (_, i) => i + 1).filter(
+      (n) => !usedSuffixes.has(n),
+    );
+  };
+
+  // 1. Open Add Floor Modal
+  const handleOpenAddFloor = () => {
+    const available = getAvailableFloorNumbers();
+    if (available.length === 0) {
+      toast.error(
+        "Maximum of 7 floors reached. Delete an existing floor to add a new one.",
+      );
+      return;
+    }
+    setFloorChoiceMode("next");
+    setSelectedFloorNumber(available[0]);
+    setFloorChoiceOpen(true);
+  };
+
+  // 1b. Actually add the floor (called from floor choice modal)
+  const handleAddFloor = async (floorNumber: number) => {
+    // Client-side duplicate guard
+    const alreadyExists = (property.floors ?? []).some(
+      (f) => f.floorNumber === floorNumber,
+    );
+    if (alreadyExists) {
+      toast.error(`Floor ${floorNumber} already exists on this property.`);
       return;
     }
 
     try {
       setAddingFloor(true);
-      const nextFloorNumber = currentFloorsCount + 1;
       const res = await addFloorAction({
         propertyId: property.id,
-        floorNumber: nextFloorNumber,
+        floorNumber,
       });
 
       if (res.success) {
-        toast.success(`Floor ${nextFloorNumber} added successfully!`);
+        toast.success(`Floor ${floorNumber} added successfully.`);
+        setFloorChoiceOpen(false);
         await reloadPropertyDetails();
       } else {
-        toast.error(res.error || "Failed to add floor");
+        toast.error(
+          friendlyError(res.error, "Unable to add floor. Please try again."),
+        );
       }
     } catch {
-      toast.error("Error adding floor");
+      toast.error("Unable to add floor. Please try again.");
     } finally {
       setAddingFloor(false);
     }
@@ -182,7 +294,12 @@ export function PropertyDetailView({
           toast.success("Property deleted successfully");
           router.push("/admin/properties");
         } else {
-          toast.error(res.error || "Failed to delete property");
+          toast.error(
+            friendlyError(
+              res.error,
+              "Failed to delete property. Please try again.",
+            ),
+          );
         }
       },
     });
@@ -202,7 +319,12 @@ export function PropertyDetailView({
           toast.success(`Floor ${floor.floorNumber} deleted`);
           await reloadPropertyDetails();
         } else {
-          toast.error(res.error || "Failed to delete floor");
+          toast.error(
+            friendlyError(
+              res.error,
+              "Failed to delete floor. Please try again.",
+            ),
+          );
         }
       },
     });
@@ -212,9 +334,18 @@ export function PropertyDetailView({
   const handleOpenAddRoom = (floor: Floor) => {
     const existingRoomsCount =
       property.floors?.find((f) => f.id === floor.id)?.rooms?.length || 0;
-    const defaultNum = `${floor.floorNumber}0${existingRoomsCount + 1}`;
+    if (existingRoomsCount >= 10) {
+      toast.error(
+        "Maximum of 10 rooms per floor reached. Delete a room to add a new one.",
+      );
+      return;
+    }
+    // Gap-aware: find the lowest unused room slot
+    const nextRoomNum = getNextRoomNumber(floor);
+    setRoomPositionMode("next");
+    setSelectedRoomPosition(null);
     setSingleRoomData({
-      roomNumber: defaultNum,
+      roomNumber: nextRoomNum || `${floor.floorNumber}01`,
       type: "2-Sharing",
       capacity: 2,
     });
@@ -224,6 +355,21 @@ export function PropertyDetailView({
   const handleSingleAddRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addRoomFloor || !singleRoomData.roomNumber.trim()) return;
+
+    // Client-side duplicate guard
+    const floorRooms =
+      property.floors?.find((f) => f.id === addRoomFloor.id)?.rooms ?? [];
+    const roomAlreadyExists = floorRooms.some(
+      (r) =>
+        r.roomNumber.trim().toLowerCase() ===
+        singleRoomData.roomNumber.trim().toLowerCase(),
+    );
+    if (roomAlreadyExists) {
+      toast.error(
+        `Room ${singleRoomData.roomNumber} already exists on Floor ${addRoomFloor.floorNumber}.`,
+      );
+      return;
+    }
 
     try {
       setAddingRoomLoading(true);
@@ -237,15 +383,17 @@ export function PropertyDetailView({
 
       if (res.success) {
         toast.success(
-          `Room ${singleRoomData.roomNumber} created with ${singleRoomData.capacity} beds!`,
+          `Room ${singleRoomData.roomNumber} added with ${singleRoomData.capacity} beds.`,
         );
         setAddRoomFloor(null);
         await reloadPropertyDetails();
       } else {
-        toast.error(res.error || "Failed to create room");
+        toast.error(
+          friendlyError(res.error, "Unable to create room. Please try again."),
+        );
       }
     } catch {
-      toast.error("Error creating room");
+      toast.error("Unable to create room. Please try again.");
     } finally {
       setAddingRoomLoading(false);
     }
@@ -253,9 +401,21 @@ export function PropertyDetailView({
 
   // 5. Open Bulk Add Rooms Modal
   const handleOpenAddRoomsBulk = (floor: Floor) => {
+    const existingRoomsCount =
+      property.floors?.find((f) => f.id === floor.id)?.rooms?.length || 0;
+    if (existingRoomsCount >= 10) {
+      toast.error(
+        "Maximum of 10 rooms per floor reached. Delete a room to add a new one.",
+      );
+      return;
+    }
+    const remaining = 10 - existingRoomsCount;
     setBulkRoomCounts({
-      twoSharingCount: 2,
-      threeSharingCount: 1,
+      twoSharingCount: Math.min(2, remaining),
+      threeSharingCount: Math.min(
+        1,
+        Math.max(0, remaining - Math.min(2, remaining)),
+      ),
     });
     setBulkFloor(floor);
   };
@@ -267,7 +427,16 @@ export function PropertyDetailView({
       (bulkRoomCounts.twoSharingCount || 0) +
       (bulkRoomCounts.threeSharingCount || 0);
     if (total <= 0) {
-      toast.error("Please enter at least 1 room to create");
+      toast.error("Please enter at least 1 room to create.");
+      return;
+    }
+
+    const existingRoomsCount =
+      property.floors?.find((f) => f.id === bulkFloor.id)?.rooms?.length || 0;
+    if (existingRoomsCount + total > 10) {
+      toast.error(
+        `Floor ${bulkFloor.floorNumber} only has ${10 - existingRoomsCount} slot(s) remaining. Reduce the room count.`,
+      );
       return;
     }
 
@@ -282,15 +451,17 @@ export function PropertyDetailView({
 
       if (res.success) {
         toast.success(
-          `Successfully created ${total} rooms on Floor ${bulkFloor.floorNumber}!`,
+          `${total} room${total > 1 ? "s" : ""} added on Floor ${bulkFloor.floorNumber}.`,
         );
         setBulkFloor(null);
         await reloadPropertyDetails();
       } else {
-        toast.error(res.error || "Failed to create bulk rooms");
+        toast.error(
+          friendlyError(res.error, "Unable to create rooms. Please try again."),
+        );
       }
     } catch {
-      toast.error("Error adding rooms in bulk");
+      toast.error("Unable to create rooms. Please try again.");
     } finally {
       setBulkAddingLoading(false);
     }
@@ -308,23 +479,29 @@ export function PropertyDetailView({
   const handleEditRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRoom || !editingRoomData.roomNumber.trim()) return;
+    if (editingRoomData.type === editingRoom.type) {
+      toast.error("Type is already the same.");
+      return;
+    }
 
     try {
       setUpdatingRoomLoading(true);
-      const res = await updateRoomAction(editingRoom.id, {
-        roomNumber: editingRoomData.roomNumber.trim(),
-        type: editingRoomData.type,
-      });
+      const res = await updateRoomTypeAction(
+        editingRoom.id,
+        editingRoomData.type,
+      );
 
       if (res.success) {
-        toast.success("Room updated successfully!");
+        toast.success("Room updated successfully.");
         setEditingRoom(null);
         await reloadPropertyDetails();
       } else {
-        toast.error(res.error || "Failed to update room");
+        toast.error(
+          friendlyError(res.error, "Unable to update room. Please try again."),
+        );
       }
     } catch {
-      toast.error("Error updating room");
+      toast.error("Unable to update room. Please try again.");
     } finally {
       setUpdatingRoomLoading(false);
     }
@@ -344,7 +521,12 @@ export function PropertyDetailView({
           toast.success(`Room ${room.roomNumber} deleted`);
           await reloadPropertyDetails();
         } else {
-          toast.error(res.error || "Failed to delete room");
+          toast.error(
+            friendlyError(
+              res.error,
+              "Failed to delete room. Please try again.",
+            ),
+          );
         }
       },
     });
@@ -358,7 +540,12 @@ export function PropertyDetailView({
       toast.success(`Bed ${bed.bedNumber} marked as ${nextStatus}`);
       await reloadPropertyDetails();
     } else {
-      toast.error(res.error || "Failed to update bed status");
+      toast.error(
+        friendlyError(
+          res.error,
+          "Failed to update bed status. Please try again.",
+        ),
+      );
     }
   };
 
@@ -386,33 +573,18 @@ export function PropertyDetailView({
           toast.success(`Bed ${bed.bedNumber} is now VACANT`);
           await reloadPropertyDetails();
         } else {
-          toast.error(res.error || "Failed to mark bed as vacant");
+          toast.error(
+            friendlyError(
+              res.error,
+              "Failed to free the bed. Please try again.",
+            ),
+          );
         }
       },
     });
   };
 
-  // 10. Bed: Delete
-  const promptDeleteBed = (bed: Bed) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: `Delete Bed ${bed.bedNumber}`,
-      description: `Are you sure you want to permanently delete Bed ${bed.bedNumber}?`,
-      confirmText: "Delete Bed",
-      variant: "destructive",
-      action: async () => {
-        const res = await deleteBedAction(bed.id);
-        if (res.success) {
-          toast.success(`Bed ${bed.bedNumber} deleted`);
-          await reloadPropertyDetails();
-        } else {
-          toast.error(res.error || "Failed to delete bed");
-        }
-      },
-    });
-  };
-
-  // 11. Bed: Book -> open reusable NewBookingModal
+  // 10. Bed: Book -> open reusable NewBookingModal
   const handleBookBed = (bed?: Bed) => {
     setBookingTargetBedId(bed?.id || null);
     setBookingModalOpen(true);
@@ -447,7 +619,7 @@ export function PropertyDetailView({
         }
       >
         <Button
-          onClick={handleAddFloor}
+          onClick={handleOpenAddFloor}
           disabled={addingFloor}
           size="sm"
           className="font-semibold cursor-pointer"
@@ -533,7 +705,7 @@ export function PropertyDetailView({
               Click the button below to add Floor 1 to this building.
             </p>
             <Button
-              onClick={handleAddFloor}
+              onClick={handleOpenAddFloor}
               disabled={addingFloor}
               size="sm"
               className="mt-1 cursor-pointer"
@@ -556,7 +728,6 @@ export function PropertyDetailView({
               onDeleteRoom={promptDeleteRoom}
               onToggleMaintenance={handleToggleBedMaintenance}
               onMarkVacant={promptMarkVacant}
-              onDeleteBed={promptDeleteBed}
               onBookBed={handleBookBed}
             />
           ))}
@@ -570,10 +741,13 @@ export function PropertyDetailView({
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  Add Room on Floor {addRoomFloor.floorNumber}
+                  Add Room — Floor {addRoomFloor.floorNumber}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Specify room number and bed sharing type.
+                  {10 -
+                    (property.floors?.find((f) => f.id === addRoomFloor.id)
+                      ?.rooms?.length || 0)}{" "}
+                  slot(s) remaining on this floor
                 </p>
               </div>
               <button
@@ -586,25 +760,97 @@ export function PropertyDetailView({
             </div>
 
             <form onSubmit={handleSingleAddRoomSubmit} className="space-y-4">
+              {/* Position mode toggle */}
               <div className="space-y-1.5">
-                <Label htmlFor="single-room-no" className="text-xs">
-                  Room Number *
-                </Label>
-                <Input
-                  id="single-room-no"
-                  placeholder="e.g. 101"
-                  value={singleRoomData.roomNumber}
-                  onChange={(e) =>
-                    setSingleRoomData({
-                      ...singleRoomData,
-                      roomNumber: e.target.value,
-                    })
-                  }
-                  required
-                  disabled
-                />
+                <Label className="text-xs">Add Position</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoomPositionMode("next");
+                      const nextNum = getNextRoomNumber(addRoomFloor);
+                      setSingleRoomData((prev) => ({
+                        ...prev,
+                        roomNumber: nextNum || prev.roomNumber,
+                      }));
+                    }}
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      roomPositionMode === "next"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    Next Available
+                    {roomPositionMode === "next" &&
+                      singleRoomData.roomNumber && (
+                        <span className="ml-1 opacity-80">
+                          ({singleRoomData.roomNumber})
+                        </span>
+                      )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoomPositionMode("specific");
+                      const positions = getAvailableRoomPositions(addRoomFloor);
+                      if (positions.length > 0) {
+                        const pos = positions[0];
+                        setSelectedRoomPosition(pos);
+                        setSingleRoomData((prev) => ({
+                          ...prev,
+                          roomNumber: `${addRoomFloor.floorNumber}${String(pos).padStart(2, "0")}`,
+                        }));
+                      }
+                    }}
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      roomPositionMode === "specific"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    Specific Position
+                  </button>
+                </div>
               </div>
 
+              {/* Room number display / position select */}
+              {roomPositionMode === "next" ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="single-room-no" className="text-xs">
+                    Room Number
+                  </Label>
+                  <Input
+                    id="single-room-no"
+                    value={singleRoomData.roomNumber}
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Select Room Position</Label>
+                  <select
+                    value={selectedRoomPosition ?? ""}
+                    onChange={(e) => {
+                      const pos = parseInt(e.target.value);
+                      setSelectedRoomPosition(pos);
+                      setSingleRoomData((prev) => ({
+                        ...prev,
+                        roomNumber: `${addRoomFloor.floorNumber}${String(pos).padStart(2, "0")}`,
+                      }));
+                    }}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {getAvailableRoomPositions(addRoomFloor).map((pos) => (
+                      <option key={pos} value={pos}>
+                        Room {addRoomFloor.floorNumber}
+                        {String(pos).padStart(2, "0")} (Slot {pos})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Sharing type */}
               <div className="space-y-1.5">
                 <Label className="text-xs">Sharing Configuration</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -646,7 +892,11 @@ export function PropertyDetailView({
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Beds {singleRoomData.roomNumber}-A,{" "}
-                  {singleRoomData.roomNumber}-B will be initialized.
+                  {singleRoomData.roomNumber}-B
+                  {singleRoomData.type === "3-Sharing"
+                    ? `, ${singleRoomData.roomNumber}-C`
+                    : ""}{" "}
+                  will be initialized.
                 </p>
               </div>
 
@@ -664,7 +914,7 @@ export function PropertyDetailView({
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={addingRoomLoading}
+                  disabled={addingRoomLoading || !singleRoomData.roomNumber}
                   className="cursor-pointer text-xs font-semibold"
                 >
                   {addingRoomLoading && (
@@ -709,7 +959,7 @@ export function PropertyDetailView({
                   id="bulk-2s"
                   type="number"
                   min={0}
-                  max={20}
+                  max={10}
                   value={bulkRoomCounts.twoSharingCount}
                   onChange={(e) =>
                     setBulkRoomCounts({
@@ -731,7 +981,7 @@ export function PropertyDetailView({
                   id="bulk-3s"
                   type="number"
                   min={0}
-                  max={20}
+                  max={10}
                   value={bulkRoomCounts.threeSharingCount}
                   onChange={(e) =>
                     setBulkRoomCounts({
@@ -896,6 +1146,134 @@ export function PropertyDetailView({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floor Choice Modal */}
+      {floorChoiceOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Add Floor
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {property.floors?.length || 0} of 7 floors used
+                </p>
+              </div>
+              <button
+                onClick={() => setFloorChoiceOpen(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer rounded-md p-1"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Mode toggle */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Add Position</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const available = getAvailableFloorNumbers();
+                      setFloorChoiceMode("next");
+                      setSelectedFloorNumber(available[0] ?? null);
+                    }}
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      floorChoiceMode === "next"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    Next Available
+                    {floorChoiceMode === "next" &&
+                      selectedFloorNumber !== null && (
+                        <span className="ml-1 opacity-80">
+                          (Floor {selectedFloorNumber})
+                        </span>
+                      )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFloorChoiceMode("specific");
+                      const available = getAvailableFloorNumbers();
+                      setSelectedFloorNumber(available[0] ?? null);
+                    }}
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      floorChoiceMode === "specific"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    Specific Floor
+                  </button>
+                </div>
+              </div>
+
+              {/* Floor dropdown — only shown in specific mode */}
+              {floorChoiceMode === "specific" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Select Floor Number</Label>
+                  <select
+                    value={selectedFloorNumber ?? ""}
+                    onChange={(e) =>
+                      setSelectedFloorNumber(parseInt(e.target.value))
+                    }
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {getAvailableFloorNumbers().map((n) => (
+                      <option key={n} value={n}>
+                        Floor {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Summary */}
+              {selectedFloorNumber !== null && (
+                <div className="p-3 rounded-lg bg-muted/40 border border-border/70 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground">
+                    Will add: Floor {selectedFloorNumber}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFloorChoiceOpen(false)}
+                  disabled={addingFloor}
+                  className="cursor-pointer text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={addingFloor || selectedFloorNumber === null}
+                  onClick={() => {
+                    if (selectedFloorNumber !== null) {
+                      handleAddFloor(selectedFloorNumber);
+                    }
+                  }}
+                  className="cursor-pointer text-xs font-semibold"
+                >
+                  {addingFloor && (
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  )}
+                  Add Floor {selectedFloorNumber}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

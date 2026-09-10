@@ -21,7 +21,6 @@ interface RoomCardProps {
   onDeleteRoom: (room: RoomWithBeds) => void;
   onToggleMaintenance: (bed: Bed) => void;
   onMarkVacant: (bed: Bed) => void;
-  onDeleteBed: (bed: Bed) => void;
   onBookBed?: (bed: Bed) => void;
 }
 
@@ -31,7 +30,6 @@ export function RoomCard({
   onDeleteRoom,
   onToggleMaintenance,
   onMarkVacant,
-  onDeleteBed,
   onBookBed,
 }: RoomCardProps) {
   const occupiedCount =
@@ -103,7 +101,6 @@ export function RoomCard({
                 bed={bed}
                 onToggleMaintenance={onToggleMaintenance}
                 onMarkVacant={onMarkVacant}
-                onDeleteBed={onDeleteBed}
                 onBookBed={onBookBed}
               />
             ))}

@@ -23,20 +23,32 @@ export const zodCreatePropertySchema = z.object({
 
 export const zodCreateFloorSchema = z.object({
   propertyId: z.string().min(1, "Property ID required"),
-  floorNumber: z.number().int().min(0, "Floor number required"),
-});
-
-export const zodCreateRoomSchema = z.object({
-  propertyId: z.string().min(1, "Property ID required"),
-  floorId: z.string().min(1, "Floor ID required"),
-  roomNumber: z.string().min(1, "Room number required"),
-  type: z.enum(["2-Sharing", "3-Sharing"]),
-  capacity: z.coerce
+  floorNumber: z
     .number()
     .int()
-    .min(2, "Capacity must be at least 2")
-    .max(3, "Capacity must be at most 3"),
+    .min(1, "Floor number must be between 1 and 7")
+    .max(7, "A property can have at most 7 floors"),
 });
+
+export const zodCreateRoomSchema = z
+  .object({
+    propertyId: z.string().min(1, "Property ID required"),
+    floorId: z.string().min(1, "Floor ID required"),
+    roomNumber: z.string().min(1, "Room number required"),
+    type: z.enum(["2-Sharing", "3-Sharing"]),
+    capacity: z.coerce.number().int().min(2).max(3),
+  })
+  .superRefine((data, ctx) => {
+    const expectedCapacity = data.type === "2-Sharing" ? 2 : 3;
+
+    if (data.capacity !== expectedCapacity) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["capacity"],
+        message: `${data.type} room must have capacity ${expectedCapacity}`,
+      });
+    }
+  });
 
 export type RoomResponse = {
   success: boolean;

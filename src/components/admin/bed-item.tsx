@@ -4,7 +4,6 @@ import {
   BedSingle,
   MoreHorizontal,
   Wrench,
-  Trash2,
   BookmarkCheck,
   CheckCircle2,
 } from "lucide-react";
@@ -13,7 +12,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Bed } from "@/app/actions/property/property.types";
@@ -22,7 +20,6 @@ interface BedItemProps {
   bed: Bed;
   onToggleMaintenance: (bed: Bed) => void;
   onMarkVacant: (bed: Bed) => void;
-  onDeleteBed: (bed: Bed) => void;
   onBookBed?: (bed: Bed) => void;
 }
 
@@ -30,7 +27,6 @@ export function BedItem({
   bed,
   onToggleMaintenance,
   onMarkVacant,
-  onDeleteBed,
   onBookBed,
 }: BedItemProps) {
   const isOccupied = bed.status === "OCCUPIED";
@@ -93,16 +89,6 @@ export function BedItem({
                 <Wrench className="w-3.5 h-3.5 mr-2" />
                 <span>Mark Maintenance</span>
               </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => onDeleteBed(bed)}
-                className="cursor-pointer text-xs py-1.5 text-destructive focus:text-destructive"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                <span>Delete Bed</span>
-              </DropdownMenuItem>
             </>
           )}
 
@@ -124,16 +110,6 @@ export function BedItem({
               >
                 <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
                 <span>Mark as Vacant</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => onDeleteBed(bed)}
-                className="cursor-pointer text-xs text-destructive focus:text-destructive"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                <span>Delete Bed</span>
               </DropdownMenuItem>
             </>
           )}
