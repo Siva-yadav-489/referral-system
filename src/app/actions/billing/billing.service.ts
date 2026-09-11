@@ -187,6 +187,13 @@ export class BillingService {
         ownerId,
       );
 
+      if (bookings.length === 0) {
+        return {
+          success: false,
+          error: "No bookings found",
+        };
+      }
+
       const createdInvoices: Invoice[] = [];
 
       for (const booking of bookings) {

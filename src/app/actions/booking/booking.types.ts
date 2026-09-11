@@ -24,9 +24,23 @@ export const zodCreateBookingSchema = z.object({
   propertyId: z.string().min(1, "Property ID is required"),
   bedId: z.string().min(1, "Bed allocation is required"),
   customerName: z.string().min(2, "Customer name is required"),
-  contactNo: z.string().min(10, "Valid contact number required"),
-  email: z.email("Invalid email"),
-  idProofType: z.string().optional().or(z.literal("")),
+  contactNo: z
+    .string()
+    .min(10, "Valid contact number required")
+    .max(10, "Invalid contact number"),
+  email: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return z.email().safeParse(val).success;
+      },
+      { message: "Invalid email" },
+    )
+    .optional(),
+  idProofType: z
+    .enum(["AADHAAR", "PASSPORT", "DRIVING_LICENSE", "VOTER_ID", "PAN_CARD"])
+    .optional(),
   idProofNumber: z.string().optional().or(z.literal("")),
   emergencyContact: z.string().optional().or(z.literal("")),
   agreedMonthlyRent: z
@@ -57,6 +71,13 @@ export const zodUpdateBookingStatusSchema = z.object({
     .positive("Deposit amount refunded must be a positive number")
     .optional(),
 });
+
+export type CustomerIdProofType =
+  | "AADHAAR"
+  | "PASSPORT"
+  | "DRIVING_LICENSE"
+  | "VOTER_ID"
+  | "PAN_CARD";
 
 export type BookingResponse = {
   success: boolean;

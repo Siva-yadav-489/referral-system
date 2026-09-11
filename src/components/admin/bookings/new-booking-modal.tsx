@@ -15,6 +15,15 @@ import {
   getAvailableBedsAction,
   getPropertiesAction,
 } from "@/app/actions/admin-actions";
+import { CustomerIdProofType } from "@/app/actions/booking/booking.types";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface NewBookingFormData {
   propertyId: string;
@@ -22,7 +31,7 @@ export interface NewBookingFormData {
   customerName: string;
   contactNo: string;
   email: string;
-  idProofType: string;
+  idProofType: CustomerIdProofType;
   idProofNumber: string;
   emergencyContact: string;
   agreedMonthlyRent: number;
@@ -44,9 +53,65 @@ export interface NewBookingModalProps {
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const ID_PROOF_REGEX: Record<CustomerIdProofType, RegExp> = {
+  AADHAAR: /^\d{12}$/,
+  PAN_CARD: /^[A-Z]{5}[0-9]{4}[A-Z]$/,
+  PASSPORT: /^[A-PR-WYa-pr-wy][1-9]\d{7}$/,
+  DRIVING_LICENSE: /^[A-Z]{2}[- ]?\d{2}[0-9]{4,11}$/,
+  VOTER_ID: /^[A-Z]{3}[0-9]{7}$/,
+};
+
 const isValidPhone = (phone: string) => PHONE_REGEX.test(phone);
 
 const isValidEmail = (email: string) => EMAIL_REGEX.test(email);
+
+const validateIdProof = (
+  type: CustomerIdProofType,
+  number: string,
+): string | null => {
+  const value = number.trim().toUpperCase();
+
+  if (!value) {
+    return "ID proof number is required";
+  }
+
+  switch (type) {
+    case "AADHAAR":
+      if (!ID_PROOF_REGEX.AADHAAR.test(value)) {
+        return "Aadhaar must be exactly 12 digits";
+      }
+      break;
+
+    case "PAN_CARD":
+      if (!ID_PROOF_REGEX.PAN_CARD.test(value)) {
+        return "PAN must be in format ABCDE1234F";
+      }
+      break;
+
+    case "PASSPORT":
+      if (!ID_PROOF_REGEX.PASSPORT.test(value)) {
+        return "Please enter a valid passport number";
+      }
+      break;
+
+    case "DRIVING_LICENSE":
+      if (!ID_PROOF_REGEX.DRIVING_LICENSE.test(value)) {
+        return "Please enter a valid driving license number";
+      }
+      break;
+
+    case "VOTER_ID":
+      if (!ID_PROOF_REGEX.VOTER_ID.test(value)) {
+        return "Voter ID must be in format ABC1234567";
+      }
+      break;
+
+    default:
+      return "Invalid ID proof type";
+  }
+
+  return null;
+};
 
 const buildDefaultFormData = (
   propertyId: string = "",
@@ -57,15 +122,13 @@ const buildDefaultFormData = (
   customerName: "",
   contactNo: "",
   email: "",
-  idProofType: "",
+  idProofType: "AADHAAR",
   idProofNumber: "",
   emergencyContact: "",
   agreedMonthlyRent: 8000,
   depositAmountCollected: 4000,
   startDate: new Date().toISOString().split("T")[0],
-  endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0],
+  endDate: "",
 });
 
 export function NewBookingModal({
@@ -159,7 +222,35 @@ export function NewBookingModal({
 
   if (!isOpen) return null;
 
-  const handlePropertyChange = (newPropId: string) => {
+  const idProofTypes: {
+    value: CustomerIdProofType;
+    label: string;
+  }[] = [
+    {
+      value: "AADHAAR",
+      label: "Aadhaar",
+    },
+    {
+      value: "PAN_CARD",
+      label: "PAN Card",
+    },
+    {
+      value: "PASSPORT",
+      label: "Passport",
+    },
+    {
+      value: "DRIVING_LICENSE",
+      label: "Driving License",
+    },
+    {
+      value: "VOTER_ID",
+      label: "Voter ID",
+    },
+  ];
+
+  const handlePropertyChange = (newPropId: string | null) => {
+    if (!newPropId) return;
+
     setFormData((prev) => ({
       ...prev,
       propertyId: newPropId,
@@ -170,11 +261,6 @@ export function NewBookingModal({
   const handleFormChange = (updates: Partial<NewBookingFormData>) => {
     setFormData((prev) => {
       const next = { ...prev, ...updates };
-
-      if (updates.agreedMonthlyRent !== undefined) {
-        next.depositAmountCollected = updates.agreedMonthlyRent / 2;
-      }
-
       return next;
     });
   };
@@ -200,6 +286,18 @@ export function NewBookingModal({
       return;
     }
 
+    if (formData.idProofNumber.trim()) {
+      const idProofError = validateIdProof(
+        formData.idProofType,
+        formData.idProofNumber,
+      );
+
+      if (idProofError) {
+        toast.error(idProofError);
+        return;
+      }
+    }
+
     if (formData.agreedMonthlyRent <= 0) {
       toast.error("Monthly rent must be greater than ₹0");
       return;
@@ -213,13 +311,13 @@ export function NewBookingModal({
         customerName: formData.customerName.trim(),
         contactNo: formData.contactNo.trim(),
         email: formData.email.trim(),
-        idProofType: formData.idProofType.trim() || undefined,
+        idProofType: formData.idProofType || undefined,
         idProofNumber: formData.idProofNumber.trim() || undefined,
         emergencyContact: formData.emergencyContact.trim() || undefined,
         agreedMonthlyRent: Number(formData.agreedMonthlyRent),
         depositAmountCollected: Number(formData.depositAmountCollected),
         startDate: formData.startDate,
-        endDate: formData.endDate,
+        endDate: formData.endDate || undefined,
       });
 
       if (res.success) {
@@ -239,6 +337,8 @@ export function NewBookingModal({
       setSubmitting(false);
     }
   };
+
+  const selectedBed = availableBeds.find((bed) => bed.id === formData.bedId);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
@@ -269,27 +369,33 @@ export function NewBookingModal({
               <Label htmlFor="propSelect" className="text-xs">
                 Select Property *
               </Label>
-              <select
-                id="propSelect"
+
+              <Select
                 value={formData.propertyId}
-                onChange={(e) => handlePropertyChange(e.target.value)}
+                onValueChange={handlePropertyChange}
                 disabled={
                   submitting ||
                   (!!preselectedPropertyId && propertiesList.length <= 1)
                 }
-                className="w-full bg-background text-foreground border border-border rounded-lg text-xs p-2.5 cursor-pointer disabled:opacity-75"
-                required
               >
-                {propertiesList.length === 0 ? (
-                  <option value="">Loading properties...</option>
-                ) : (
-                  propertiesList.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))
-                )}
-              </select>
+                <SelectTrigger id="propSelect" className="w-full">
+                  <SelectValue placeholder="Select Property">
+                    {propertiesList.find(
+                      (property) => property.id === formData.propertyId,
+                    )?.name ?? "Select Property"}
+                  </SelectValue>
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectGroup>
+                    {propertiesList.map((property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -297,6 +403,7 @@ export function NewBookingModal({
                 <Label htmlFor="bedSelect" className="text-xs">
                   Select Vacant Bed *
                 </Label>
+
                 {loadingBeds && (
                   <Loader2 className="w-3 h-3 text-muted-foreground animate-spin" />
                 )}
@@ -311,23 +418,38 @@ export function NewBookingModal({
                   No vacant beds in this property.
                 </div>
               ) : (
-                <select
-                  id="bedSelect"
+                <Select
                   value={formData.bedId}
-                  onChange={(e) => handleFormChange({ bedId: e.target.value })}
+                  onValueChange={(value) => {
+                    if (!value) return;
+
+                    handleFormChange({
+                      bedId: value,
+                    });
+                  }}
                   disabled={submitting}
-                  className="w-full bg-background text-foreground border border-border rounded-lg text-xs p-2.5 cursor-pointer"
-                  required
                 >
-                  <option value="" disabled>
-                    -- Select Bed --
-                  </option>
-                  {availableBeds.map((bed) => (
-                    <option key={bed.id} value={bed.id}>
-                      Bed {bed.bedNumber} (Room {bed.room?.roomNumber || "N/A"})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="bedSelect" className="w-full">
+                    <SelectValue placeholder="Select Bed">
+                      {selectedBed
+                        ? `Bed ${selectedBed.bedNumber} (Room ${
+                            selectedBed.room?.roomNumber || "N/A"
+                          })`
+                        : "Select Bed"}
+                    </SelectValue>
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectGroup>
+                      {availableBeds.map((bed) => (
+                        <SelectItem key={bed.id} value={bed.id}>
+                          Bed {bed.bedNumber} (Room{" "}
+                          {bed.room?.roomNumber || "N/A"})
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               )}
             </div>
           </div>
@@ -392,15 +514,33 @@ export function NewBookingModal({
                 <Label htmlFor="cProofType" className="text-xs">
                   ID Proof Type
                 </Label>
-                <Input
-                  id="cProofType"
-                  placeholder="e.g. Aadhaar / PAN / Passport"
+
+                <Select
                   value={formData.idProofType}
-                  onChange={(e) =>
-                    handleFormChange({ idProofType: e.target.value })
-                  }
+                  onValueChange={(value) => {
+                    if (!value) return;
+
+                    handleFormChange({
+                      idProofType: value as CustomerIdProofType,
+                      idProofNumber: "",
+                    });
+                  }}
                   disabled={submitting}
-                />
+                >
+                  <SelectTrigger id="cProofType" className="w-full">
+                    <SelectValue placeholder="Select ID Proof Type" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectGroup>
+                      {idProofTypes.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="cProofNum" className="text-xs">
@@ -469,11 +609,12 @@ export function NewBookingModal({
                   type="number"
                   min={0}
                   value={formData.depositAmountCollected}
-                  // onChange={(e) =>
-                  //   handleFormChange({ depositAmountCollected: parseFloat(e.target.value) || 0 })
-                  // }
-                  // disabled={submitting}
-                  disabled
+                  onChange={(e) =>
+                    handleFormChange({
+                      depositAmountCollected: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  disabled={submitting}
                   required
                 />
               </div>

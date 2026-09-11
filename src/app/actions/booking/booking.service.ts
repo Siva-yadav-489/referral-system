@@ -55,7 +55,8 @@ export class BookingService {
         customerData: {
           name: validated.customerName,
           contactNo: validated.contactNo,
-          email: validated.email,
+          email: validated.email || "",
+          idProofType: validated.idProofType || undefined,
           idProofNumber: validated.idProofNumber || undefined,
           emergencyContact: validated.emergencyContact || undefined,
         },

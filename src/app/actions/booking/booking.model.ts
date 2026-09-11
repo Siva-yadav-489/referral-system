@@ -14,6 +14,7 @@ import {
   NewCustomer,
   BookingWithDetails,
   BookingTransactionResult,
+  CustomerIdProofType,
 } from "./booking.types";
 import { getBillingPeriodsBetween } from "../billing/billing.utils";
 import { BillingModel } from "../billing/billing.model";
@@ -134,7 +135,7 @@ export class BookingModel {
       name: string;
       contactNo: string;
       email: string;
-      idProofType?: string;
+      idProofType?: CustomerIdProofType;
       idProofNumber?: string;
       emergencyContact?: string;
     };

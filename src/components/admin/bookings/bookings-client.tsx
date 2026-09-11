@@ -27,6 +27,7 @@ import {
 } from "./checkout-tenant-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "../page-header";
+import Link from "next/link";
 
 interface BookingsClientProps {
   initialBookings: BookingWithDetails[];
@@ -202,6 +203,7 @@ export function BookingsClient({
             size="sm"
             onClick={() => setShowNewBookingModal(true)}
             className="cursor-pointer text-xs font-semibold"
+            disabled={initialProperties.length === 0}
           >
             <Plus className="w-4 h-4 mr-1" />
             New Booking
@@ -308,10 +310,27 @@ export function BookingsClient({
                 onClick={() => setShowNewBookingModal(true)}
                 size="sm"
                 className="mt-2 text-xs"
+                disabled={initialProperties.length === 0}
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 New Booking
               </Button>
+
+              {initialProperties.length === 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-muted-foreground">
+                    To make a booking, you need to add a property first.
+                  </p>
+                  <Link
+                    href="/admin/properties"
+                    className="text-primary hover:underline text-xs"
+                  >
+                    <Button size="sm" className="mt-2 text-xs">
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Add Property
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (

@@ -75,9 +75,9 @@ export function RecentInvoicesCard({
           View ledger
         </Link>
       </CardHeader>
-      <CardContent>
+      <CardContent className="h-full">
         {invoices.length === 0 ? (
-          <div className="py-10 text-center flex flex-col items-center justify-center border border-dashed border-border rounded-xl bg-muted/20">
+          <div className="py-10 text-center flex flex-col h-full items-center justify-center border border-dashed border-border rounded-xl bg-muted/20">
             <Receipt className="w-8 h-8 text-muted-foreground/50 mb-2" />
             <h3 className="text-sm font-semibold text-foreground">
               No invoices yet

@@ -20,6 +20,14 @@ export const referralStatusEnum = pgEnum("referral_status", [
   "REWARDED",
 ]);
 
+export const customerIdProofType = pgEnum("customer_id_proof_type", [
+  "AADHAAR",
+  "PASSPORT",
+  "DRIVING_LICENSE",
+  "VOTER_ID",
+  "PAN_CARD",
+]);
+
 export const roomTypeEnum = pgEnum("room_type", ["2-Sharing", "3-Sharing"]);
 
 export const bedStatusEnum = pgEnum("bed_status", [
@@ -104,7 +112,7 @@ export const referrers = pgTable("referrer", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email"),
-  contactNo: text("contact_no"),
+  contactNo: text("contact_no").notNull(),
   points: integer("points").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -120,7 +128,7 @@ export const referralLeads = pgTable("referral_lead", {
     .references(() => referrers.id, { onDelete: "restrict" }),
   refereeName: text("referee_name").notNull(),
   refereeEmail: text("referee_email"),
-  refereeContactNo: text("referee_contact_no"),
+  refereeContactNo: text("referee_contact_no").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -236,7 +244,7 @@ export const customers = pgTable("customer", {
   name: text("name").notNull(),
   contactNo: text("contact_no").notNull(),
   email: text("email").notNull(),
-  idProofType: text("id_proof_type"),
+  idProofType: customerIdProofType("id_proof_type"),
   idProofNumber: text("id_proof_number"),
   emergencyContact: text("emergency_contact"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

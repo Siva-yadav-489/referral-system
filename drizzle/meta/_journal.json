@@ -8,6 +8,13 @@
       "when": 1789141999385,
       "tag": "0000_strong_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789154256615,
+      "tag": "0001_shiny_satana",
+      "breakpoints": true
     }
   ]
 }
