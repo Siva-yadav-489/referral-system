@@ -1,12 +1,12 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AdminSidebar } from "@/components/admin-sidebar";
 import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function AdminLayout({
   children,
@@ -21,10 +21,6 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  if (session.user.role !== "ADMIN") {
-    redirect("/dashboard/referrals");
-  }
-
   return (
     <SidebarProvider
       style={
@@ -34,7 +30,7 @@ export default async function AdminLayout({
         } as React.CSSProperties
       }
     >
-      <AdminSidebar variant="sidebar" />
+      <AppSidebar variant="sidebar" />
       <SidebarInset>{children}</SidebarInset>
       <SidebarTrigger className="fixed top-3 left-2 md:hidden" />
     </SidebarProvider>

@@ -25,7 +25,7 @@ export const zodCreateBookingSchema = z.object({
   bedId: z.string().min(1, "Bed allocation is required"),
   customerName: z.string().min(2, "Customer name is required"),
   contactNo: z.string().min(10, "Valid contact number required"),
-  email: z.string().email("Invalid email format").optional().or(z.literal("")),
+  email: z.email("Invalid email"),
   idProofType: z.string().optional().or(z.literal("")),
   idProofNumber: z.string().optional().or(z.literal("")),
   emergencyContact: z.string().optional().or(z.literal("")),
@@ -40,7 +40,8 @@ export const zodCreateBookingSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), "Invalid start date format"),
   endDate: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), "Invalid end date format"),
+    .refine((val) => !isNaN(Date.parse(val)), "Invalid end date format")
+    .optional(),
 });
 
 export const zodExtendBookingSchema = z.object({

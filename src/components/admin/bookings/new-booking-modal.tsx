@@ -212,7 +212,7 @@ export function NewBookingModal({
         bedId: formData.bedId,
         customerName: formData.customerName.trim(),
         contactNo: formData.contactNo.trim(),
-        email: formData.email.trim() || undefined,
+        email: formData.email.trim(),
         idProofType: formData.idProofType.trim() || undefined,
         idProofNumber: formData.idProofNumber.trim() || undefined,
         emergencyContact: formData.emergencyContact.trim() || undefined,
@@ -494,7 +494,7 @@ export function NewBookingModal({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="eDate" className="text-xs">
-                  End Date *
+                  End Date
                 </Label>
                 <Input
                   id="eDate"
@@ -504,7 +504,6 @@ export function NewBookingModal({
                     handleFormChange({ endDate: e.target.value })
                   }
                   disabled={submitting}
-                  required
                 />
               </div>
             </div>

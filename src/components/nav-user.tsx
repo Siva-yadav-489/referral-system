@@ -22,13 +22,11 @@ import {
 import {
   EllipsisVerticalIcon,
   LogOutIcon,
-  ShieldCheck,
   Sun,
   Moon,
   Laptop,
   Check,
 } from "lucide-react";
-import Link from "next/link";
 
 export function NavUser({
   user: initialUser,
@@ -47,7 +45,6 @@ export function NavUser({
   const userName = session?.user?.name || initialUser?.name || "User";
   const userEmail = session?.user?.email || initialUser?.email || "";
   const userAvatar = session?.user?.image || initialUser?.avatar || "";
-  const isAdmin = session?.user?.role === "ADMIN";
 
   const initials = userName
     ? userName
@@ -152,23 +149,6 @@ export function NavUser({
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
-
-            {isAdmin && (
-              <>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    render={
-                      <Link href="/admin" className="flex items-center gap-2" />
-                    }
-                    className="cursor-pointer"
-                  >
-                    <ShieldCheck className="size-4" />
-                    <span>Admin Management</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-              </>
-            )}
 
             <DropdownMenuItem
               onClick={handleSignOut}

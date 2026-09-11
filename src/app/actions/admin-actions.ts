@@ -33,8 +33,8 @@ async function getAdminOwnerId(): Promise<string> {
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized: Admin access required");
+  if (!session) {
+    throw new Error("Unauthorized");
   }
 
   return session.user.id;

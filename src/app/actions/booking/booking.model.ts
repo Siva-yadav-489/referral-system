@@ -1,6 +1,12 @@
 import { db } from "@/db";
-import { bookings, customers, beds } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  bookings,
+  customers,
+  beds,
+  referralLeads,
+  referrals,
+} from "@/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import {
   Booking,
   NewBooking,
@@ -11,6 +17,7 @@ import {
 } from "./booking.types";
 import { getBillingPeriodsBetween } from "../billing/billing.utils";
 import { BillingModel } from "../billing/billing.model";
+import { addMonths, isAfter } from "date-fns";
 
 export class BookingModel {
   static async createCustomer(data: NewCustomer): Promise<Customer> {
@@ -126,7 +133,7 @@ export class BookingModel {
     customerData: {
       name: string;
       contactNo: string;
-      email?: string;
+      email: string;
       idProofType?: string;
       idProofNumber?: string;
       emergencyContact?: string;
@@ -143,10 +150,10 @@ export class BookingModel {
         .values({
           id: crypto.randomUUID(),
           ownerId: params.ownerId,
-          propertyId: params.propertyId,
+          // propertyId: params.propertyId,
           name: params.customerData.name,
           contactNo: params.customerData.contactNo,
-          email: params.customerData.email || null,
+          email: params.customerData.email,
           idProofType: params.customerData.idProofType || null,
           idProofNumber: params.customerData.idProofNumber || null,
           emergencyContact: params.customerData.emergencyContact || null,
@@ -176,6 +183,37 @@ export class BookingModel {
         .set({ status: "OCCUPIED", updatedAt: new Date() })
         .where(eq(beds.id, params.bedId));
 
+      // 4. Check if the customer was referred by anyone
+      const [referredCustomer] = await tx
+        .select()
+        .from(referralLeads)
+        .where(
+          and(
+            eq(referralLeads.refereeEmail, params.customerData.email),
+            eq(referralLeads.refereeContactNo, params.customerData.contactNo),
+          ),
+        )
+        .orderBy(asc(referralLeads.createdAt))
+        .limit(1);
+
+      // if referred customer is found, then create a referral record
+      if (referredCustomer) {
+        await tx.insert(referrals).values({
+          id: crypto.randomUUID(),
+          propertyId: params.propertyId,
+          referralLeadId: referredCustomer.id,
+          referrerId: referredCustomer.referrerId,
+          customerId: customer.id,
+          status: "ACTIVE",
+          rewardPoints: 2000,
+          activatedAt: new Date(),
+        });
+      }
+
+      // 5. TODO: Need to create a job scheduled to run after exactly 3months from the bookingStartDate.
+      // the job should check if the booking is still active or not. if active then update the referrer's points by adding the reward points mentioned in referrals table to the referrer, upadate the refrral status to QUALIFIED.
+      // and if the booking is not active then update  the referral status to DISQUALIFIED.
+      // (optional) also when tenant checksout or cancels booking, check if there is an active referral and booking period is less than 3 months, if yes then cancel that job update referral status to DISQUALIFIED.
       return {
         booking,
         customer,
@@ -259,6 +297,41 @@ export class BookingModel {
         })
         .where(eq(beds.id, bedId));
 
+      /*** Check if there is an active referral for the customer of this booking,
+       * if yes then check if booking end date is before 3 months from the booking start date, if yes then cancel that job and update referral status to DISQUALIFIED.
+       */
+
+      const [activeReferral] = await tx
+        .select()
+        .from(referrals)
+        .where(
+          and(
+            eq(referrals.customerId, booking.customerId),
+            eq(referrals.status, "ACTIVE"),
+          ),
+        );
+
+      if (activeReferral?.id) {
+        const threeMonthsAfterBookingStart = addMonths(
+          new Date(booking.startDate),
+          3,
+        );
+        const isBookingAfterThreeMonths = isAfter(
+          new Date(booking.endDate!),
+          threeMonthsAfterBookingStart,
+        );
+
+        if (!isBookingAfterThreeMonths) {
+          // TODO: when job implementation is done add logic to cancel that job here.
+          await tx
+            .update(referrals)
+            .set({
+              status: "DISQUALIFIED",
+              updatedAt: new Date(),
+            })
+            .where(eq(referrals.id, activeReferral.id));
+        }
+      }
       return closedBooking;
     });
   }
@@ -281,6 +354,42 @@ export class BookingModel {
         .update(beds)
         .set({ status: "VACANT", updatedAt: new Date() })
         .where(eq(beds.id, bedId));
+
+      /*** Check if there is an active referral for the customer of this booking,
+       * if yes then check if booking end date is before 3 months from the booking start date, if yes then cancel that job and update referral status to DISQUALIFIED.
+       */
+
+      const [activeReferral] = await tx
+        .select()
+        .from(referrals)
+        .where(
+          and(
+            eq(referrals.customerId, cancelledBooking.customerId),
+            eq(referrals.status, "ACTIVE"),
+          ),
+        );
+
+      if (activeReferral?.id) {
+        const threeMonthsAfterBookingStart = addMonths(
+          new Date(cancelledBooking.startDate),
+          3,
+        );
+        const isBookingAfterThreeMonths = isAfter(
+          new Date(cancelledBooking.endDate!),
+          threeMonthsAfterBookingStart,
+        );
+
+        if (!isBookingAfterThreeMonths) {
+          // TODO: when job implementation is done add logic to cancel that job here.
+          await tx
+            .update(referrals)
+            .set({
+              status: "DISQUALIFIED",
+              updatedAt: new Date(),
+            })
+            .where(eq(referrals.id, activeReferral.id));
+        }
+      }
 
       return cancelledBooking;
     });

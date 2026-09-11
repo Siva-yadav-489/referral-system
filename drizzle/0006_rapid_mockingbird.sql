@@ -1,1 +1,0 @@
-ALTER TABLE "booking" ALTER COLUMN "deposit_amount_collected" DROP NOT NULL;

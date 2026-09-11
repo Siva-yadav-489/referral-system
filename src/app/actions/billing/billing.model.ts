@@ -70,9 +70,9 @@ export class BillingModel {
 
         bookingId: booking.id,
         ownerId: booking.ownerId,
-        propertyId: booking.propertyId,
-        bedId: booking.bedId,
-        customerId: booking.customerId,
+        // propertyId: booking.propertyId,
+        // bedId: booking.bedId,
+        // customerId: booking.customerId,
 
         billingPeriodStart: calculation.billingPeriodStartString,
 
@@ -197,18 +197,6 @@ export class BillingModel {
     }
 
     return results;
-  }
-
-  static async updateInvoice(
-    id: string,
-    data: Partial<Invoice>,
-  ): Promise<Invoice> {
-    const [updated] = await db
-      .update(invoices)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(invoices.id, id))
-      .returning();
-    return updated;
   }
 
   static async updateInvoiceStatus(

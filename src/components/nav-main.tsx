@@ -18,6 +18,7 @@ export function NavMain({
     title: string;
     url: string;
     icon: LucideIcon;
+    exact: boolean;
   }[];
 }) {
   const pathname = usePathname();
@@ -27,8 +28,9 @@ export function NavMain({
       <SidebarGroupContent>
         <SidebarMenu className="gap-1">
           {items.map((item) => {
-            const isActive =
-              pathname === item.url || pathname.startsWith(`${item.url}/`);
+            const isActive = item.exact
+              ? pathname === item.url
+              : pathname === item.url || pathname.startsWith(`${item.url}/`);
 
             return (
               <SidebarMenuItem key={item.title}>

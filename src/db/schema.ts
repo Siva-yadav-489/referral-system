@@ -14,14 +14,10 @@ import { relations } from "drizzle-orm";
 export const userRoleEnum = pgEnum("user_role", ["USER", "ADMIN"]);
 
 export const referralStatusEnum = pgEnum("referral_status", [
-  "PENDING",
-  "PARTIALLY_REWARDED",
-  "COMPLETED",
-]);
-
-export const milestoneEnum = pgEnum("referral_milestone", [
-  "SIGNUP",
-  "PURCHASE",
+  "ACTIVE",
+  "QUALIFIED",
+  "DISQUALIFIED",
+  "REWARDED",
 ]);
 
 export const roomTypeEnum = pgEnum("room_type", ["2-Sharing", "3-Sharing"]);
@@ -61,11 +57,6 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-
-  // Extended fields
-  role: userRoleEnum("role").notNull().default("ADMIN"),
-  points: integer("points").notNull().default(0),
-  referralCode: text("referralCode").notNull().unique(),
 });
 
 export const session = pgTable("session", {
@@ -109,35 +100,57 @@ export const verification = pgTable("verification", {
 });
 
 // Referrals Table to track the connection state
-export const referrals = pgTable("referral", {
+export const referrers = pgTable("referrer", {
   id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  contactNo: text("contact_no"),
+  points: integer("points").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const referralLeads = pgTable("referral_lead", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "restrict" }),
   referrerId: text("referrer_id")
     .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  refereeId: text("referee_id")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  status: referralStatusEnum("status").default("PENDING").notNull(),
+    .references(() => referrers.id, { onDelete: "restrict" }),
+  refereeName: text("referee_name").notNull(),
+  refereeEmail: text("referee_email"),
+  refereeContactNo: text("referee_contact_no"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// History table to verify milestones and stop double-claiming points
-export const referralHistories = pgTable(
-  "referral_history",
-  {
-    id: text("id").primaryKey(),
-    referralId: text("referral_id")
-      .notNull()
-      .references(() => referrals.id, { onDelete: "cascade" }),
-    milestone: milestoneEnum("milestone").notNull(),
-    pointsAwarded: integer("points_awarded").notNull(),
-    rewardedAt: timestamp("rewarded_at").defaultNow().notNull(),
-  },
-  (table) => [
-    unique("unique_referral_milestone").on(table.referralId, table.milestone),
-  ],
-);
+export const referrals = pgTable("referral", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "restrict" }),
+  referralLeadId: text("referral_lead_id")
+    .notNull()
+    .unique()
+    .references(() => referralLeads.id, {
+      onDelete: "restrict",
+    }),
+  referrerId: text("referrer_id")
+    .notNull()
+    .references(() => referrers.id, { onDelete: "restrict" }),
+  customerId: text("customer_id")
+    .notNull()
+    .unique()
+    .references(() => customers.id, { onDelete: "restrict" }),
+  status: referralStatusEnum("status").notNull(), // for now we are setting status as ACTIVE upon creation. If we want it explicitly to get active from the bookingStartDate, we can another state "INACTIVE" then we need set a job to update the status from INACTIVE to ACTIVE on the bookingStartDate. Need to decide on this.
+  rewardPoints: integer("reward_points"),
+  activatedAt: timestamp("activated_at").notNull(),
+  qualifiedAt: timestamp("qualified_at"),
+  disqualifiedAt: timestamp("disqualified_at"),
+  rewardedAt: timestamp("rewarded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // --- PG Occupancy System Tables ---
 
@@ -220,12 +233,9 @@ export const customers = pgTable("customer", {
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "restrict" }),
-  propertyId: text("property_id")
-    .notNull()
-    .references(() => properties.id, { onDelete: "restrict" }),
   name: text("name").notNull(),
   contactNo: text("contact_no").notNull(),
-  email: text("email"),
+  email: text("email").notNull(),
   idProofType: text("id_proof_type"),
   idProofNumber: text("id_proof_number"),
   emergencyContact: text("emergency_contact"),
@@ -261,7 +271,7 @@ export const bookings = pgTable("booking", {
   }),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
-  status: bookingStatusEnum("status").notNull().default("ACTIVE"),
+  status: bookingStatusEnum("status").notNull().default("ACTIVE"), // for now we are considering booking gets active upon creation. If we want it explicitly to get active from the bookingStartDate, we can another state "UPCOMING" then the PG owner need to manually update on customer checkin or we can set a job to update the status from UPCOMING to ACTIVE on the bookingStartDate. Need to decide on this.
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -276,15 +286,6 @@ export const invoices = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    propertyId: text("property_id")
-      .notNull()
-      .references(() => properties.id, { onDelete: "restrict" }),
-    bedId: text("bed_id")
-      .notNull()
-      .references(() => beds.id, { onDelete: "restrict" }),
-    customerId: text("customer_id")
-      .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
     // Calendar billing cycle
     billingPeriodStart: date("billing_period_start").notNull(),
     billingPeriodEnd: date("billing_period_end").notNull(),
@@ -328,47 +329,66 @@ export const enquiries = pgTable("enquiry", {
 
 // --- Relations ---
 export const usersRelations = relations(user, ({ many }) => ({
-  referralsMade: many(referrals, { relationName: "referrer" }),
-  referralReceived: many(referrals, { relationName: "referee" }),
   properties: many(properties),
   customers: many(customers),
   bookings: many(bookings),
   enquiries: many(enquiries),
 }));
 
-export const referralsRelations = relations(referrals, ({ one, many }) => ({
-  referrer: one(user, {
-    fields: [referrals.referrerId],
-    references: [user.id],
-    relationName: "referrer",
-  }),
-  referee: one(user, {
-    fields: [referrals.refereeId],
-    references: [user.id],
-    relationName: "referee",
-  }),
-  history: many(referralHistories),
+export const referrersRelations = relations(referrers, ({ many }) => ({
+  referralLeads: many(referralLeads),
+  referrals: many(referrals),
 }));
 
-export const referralHistoriesRelations = relations(
-  referralHistories,
-  ({ one }) => ({
-    referral: one(referrals, {
-      fields: [referralHistories.referralId],
-      references: [referrals.id],
-    }),
+export const referralLeadsRelations = relations(referralLeads, ({ one }) => ({
+  referrer: one(referrers, {
+    fields: [referralLeads.referrerId],
+    references: [referrers.id],
   }),
-);
+
+  referral: one(referrals, {
+    fields: [referralLeads.id],
+    references: [referrals.referralLeadId],
+  }),
+
+  property: one(properties, {
+    fields: [referralLeads.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referralLead: one(referralLeads, {
+    fields: [referrals.referralLeadId],
+    references: [referralLeads.id],
+  }),
+
+  referrer: one(referrers, {
+    fields: [referrals.referrerId],
+    references: [referrers.id],
+  }),
+
+  customer: one(customers, {
+    fields: [referrals.customerId],
+    references: [customers.id],
+  }),
+
+  property: one(properties, {
+    fields: [referrals.propertyId],
+    references: [properties.id],
+  }),
+}));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
   owner: one(user, { fields: [properties.ownerId], references: [user.id] }),
   floors: many(floors),
   rooms: many(rooms),
   beds: many(beds),
-  customers: many(customers),
   bookings: many(bookings),
   invoices: many(invoices),
   enquiries: many(enquiries),
+  referrals: many(referrals),
+  referralLeads: many(referralLeads),
 }));
 
 export const floorsRelations = relations(floors, ({ one, many }) => ({
@@ -402,9 +422,9 @@ export const bedsRelations = relations(beds, ({ one, many }) => ({
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
   owner: one(user, { fields: [customers.ownerId], references: [user.id] }),
-  property: one(properties, {
-    fields: [customers.propertyId],
-    references: [properties.id],
+  referral: one(referrals, {
+    fields: [customers.id],
+    references: [referrals.customerId],
   }),
   bookings: many(bookings),
   invoices: many(invoices),
@@ -430,18 +450,6 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
     references: [bookings.id],
   }),
   owner: one(user, { fields: [invoices.ownerId], references: [user.id] }),
-  property: one(properties, {
-    fields: [invoices.propertyId],
-    references: [properties.id],
-  }),
-  bed: one(beds, {
-    fields: [invoices.bedId],
-    references: [beds.id],
-  }),
-  customer: one(customers, {
-    fields: [invoices.customerId],
-    references: [customers.id],
-  }),
 }));
 
 export const enquiriesRelations = relations(enquiries, ({ one }) => ({
@@ -456,7 +464,6 @@ export const enquiriesRelations = relations(enquiries, ({ one }) => ({
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Referral = typeof referrals.$inferSelect;
-export type ReferralHistory = typeof referralHistories.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;

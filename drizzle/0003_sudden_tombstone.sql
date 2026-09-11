@@ -1,1 +1,0 @@
-ALTER TABLE "floor" DROP COLUMN "level";

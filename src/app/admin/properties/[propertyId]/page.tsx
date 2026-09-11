@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { PropertyService } from "@/app/actions/property/property.service";
 import { BookingService } from "@/app/actions/booking/booking.service";
 import { PropertyDetailView } from "@/components/admin/property-detail-view";
+import NotFound from "@/app/not-found";
 
 export default async function PropertyPage({
   params,
@@ -14,20 +15,19 @@ export default async function PropertyPage({
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     redirect("/");
   }
 
   const { propertyId } = await params;
 
-  // Directly fetch detailed property hierarchy and active bookings on the server
   const [propRes, bookingsRes] = await Promise.all([
     PropertyService.getPropertyDetails(session.user.id, propertyId),
     BookingService.getActiveBookings(session.user.id, propertyId),
   ]);
 
   if (!propRes.success || !propRes.data) {
-    notFound();
+    return <NotFound />;
   }
 
   return (

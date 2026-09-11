@@ -14,13 +14,44 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Building2, Gift } from "lucide-react";
+import {
+  BedSingle,
+  Building2,
+  LayoutDashboard,
+  MessageSquare,
+  Receipt,
+} from "lucide-react";
 
 const navItems = [
   {
-    title: "Referrals",
-    url: "/dashboard/referrals",
-    icon: Gift,
+    title: "Dashboard",
+    url: "/admin",
+    icon: LayoutDashboard,
+    exact: true,
+  },
+  {
+    title: "Properties",
+    url: "/admin/properties",
+    icon: Building2,
+    exact: false,
+  },
+  {
+    title: "Bookings",
+    url: "/admin/bookings",
+    icon: BedSingle,
+    exact: false,
+  },
+  {
+    title: "Billing",
+    url: "/admin/billing",
+    icon: Receipt,
+    exact: false,
+  },
+  {
+    title: "Enquiries",
+    url: "/admin/enquiries",
+    icon: MessageSquare,
+    exact: false,
   },
 ];
 

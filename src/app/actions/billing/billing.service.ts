@@ -239,9 +239,9 @@ export class BillingService {
 
       bookingId: booking.id,
       ownerId: booking.ownerId,
-      propertyId: booking.propertyId,
-      bedId: booking.bedId,
-      customerId: booking.customerId,
+      // propertyId: booking.propertyId,
+      // bedId: booking.bedId,
+      // customerId: booking.customerId,
 
       billingPeriodStart: calculation.billingPeriodStartString,
 

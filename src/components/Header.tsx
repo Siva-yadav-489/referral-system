@@ -14,8 +14,6 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // const isAdmin = session?.user.role === "ADMIN";
-
   const handleSignOut = async () => {
     await signOut();
     router.push("/login");
@@ -38,35 +36,6 @@ export function Header({ showAuthButtons = true }: HeaderProps) {
 
         {showAuthButtons && (
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* {isAdmin ? (
-              <Link
-                href="/admin"
-                className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
-              >
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                Admin
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/"
-                  className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
-                >
-                  <DoorOpen className="w-4 h-4 text-primary" />
-                  <span className="hidden xs:inline">PG</span>
-                  Occupancy
-                </Link>
-
-                <Link
-                  href="/dashboard/referrals"
-                  className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
-                >
-                  <Gift className="w-4 h-4 text-primary" />
-                  Referrals
-                </Link>
-              </>
-            )} */}
-
             {session?.user ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden md:flex items-center gap-2 bg-muted border border-border rounded-full px-3 py-1.5 text-xs text-muted-foreground">
