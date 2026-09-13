@@ -15,6 +15,13 @@
       "when": 1789154256615,
       "tag": "0001_shiny_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789284144583,
+      "tag": "0002_smart_strong_guy",
+      "breakpoints": true
     }
   ]
 }

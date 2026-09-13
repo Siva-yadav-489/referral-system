@@ -9,6 +9,7 @@ import {
 } from "./booking.types";
 import { BookingModel } from "./booking.model";
 import { PropertyModel } from "../property/property.model";
+import { ReferralService } from "../referrals/referral.service";
 
 export class BookingService {
   static async createBooking(
@@ -65,6 +66,11 @@ export class BookingService {
         endDate: validated.endDate || undefined,
         depositAmountCollected: validated.depositAmountCollected,
       });
+
+      await ReferralService.matchReferralLeadToCustomer(
+        result.customer.id,
+        validated.propertyId,
+      );
 
       return {
         success: true,
@@ -231,6 +237,12 @@ export class BookingService {
         booking.bedId,
       );
 
+      await ReferralService.handleBookingEnded(
+        closedBooking.customerId,
+        closedBooking.startDate,
+        closedBooking.endDate,
+      );
+
       return {
         success: true,
         data: closedBooking,
@@ -267,6 +279,12 @@ export class BookingService {
       const cancelledBooking = await BookingModel.cancelBookingTransaction(
         bookingId,
         booking.bedId,
+      );
+
+      await ReferralService.handleBookingEnded(
+        cancelledBooking.customerId,
+        cancelledBooking.startDate,
+        cancelledBooking.endDate,
       );
 
       return {

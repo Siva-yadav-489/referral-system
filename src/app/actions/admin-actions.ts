@@ -26,6 +26,8 @@ import {
   zodGetEnquiriesFilterSchema,
   zodUpdateEnquiryStatusSchema,
 } from "./enquiry/enquiry.types";
+import { ReferralService } from "./referrals/referral.service";
+import { zodGetReferralsFilterSchema } from "./referrals/referral.types";
 import { z } from "zod";
 
 async function getAdminOwnerId(): Promise<string> {
@@ -449,6 +451,39 @@ export async function updateEnquiryStatusAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update status",
+    };
+  }
+}
+
+// -------------------------------------------------------------
+// REFERRAL ACTIONS
+// -------------------------------------------------------------
+export async function getReferralLeadsAction(
+  filter?: z.infer<typeof zodGetReferralsFilterSchema>,
+) {
+  try {
+    const ownerId = await getAdminOwnerId();
+    return await ReferralService.getOwnerReferralLeads(ownerId, filter);
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to load referral leads",
+    };
+  }
+}
+
+export async function getReferralsAction(
+  filter?: z.infer<typeof zodGetReferralsFilterSchema>,
+) {
+  try {
+    const ownerId = await getAdminOwnerId();
+    return await ReferralService.getOwnerReferrals(ownerId, filter);
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to load referrals",
     };
   }
 }

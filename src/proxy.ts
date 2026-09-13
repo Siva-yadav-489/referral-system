@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const BYPASS_PREFIXES = [
   "/api/auth", // Better-Auth session/sign-in endpoints
+  "/api/referrals/process", // Cron job for referral qualification
   "/_next", // Next.js static files & HMR
   "/favicon.ico",
 ];

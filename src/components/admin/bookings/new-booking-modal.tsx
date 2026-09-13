@@ -498,7 +498,7 @@ export function NewBookingModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="cEmail" className="text-xs">
-                  Email
+                  Email *
                 </Label>
                 <Input
                   id="cEmail"
@@ -506,6 +506,7 @@ export function NewBookingModal({
                   placeholder="e.g. rahul@example.com"
                   value={formData.email}
                   onChange={(e) => handleFormChange({ email: e.target.value })}
+                  required
                   disabled={submitting}
                   pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                 />

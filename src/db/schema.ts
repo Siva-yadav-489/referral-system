@@ -151,7 +151,7 @@ export const referrals = pgTable("referral", {
     .unique()
     .references(() => customers.id, { onDelete: "restrict" }),
   status: referralStatusEnum("status").notNull(), // for now we are setting status as ACTIVE upon creation. If we want it explicitly to get active from the bookingStartDate, we can another state "INACTIVE" then we need set a job to update the status from INACTIVE to ACTIVE on the bookingStartDate. Need to decide on this.
-  rewardPoints: integer("reward_points"),
+  rewardedPoints: integer("rewarded_points").notNull().default(0),
   activatedAt: timestamp("activated_at").notNull(),
   qualifiedAt: timestamp("qualified_at"),
   disqualifiedAt: timestamp("disqualified_at"),

@@ -1,0 +1,1 @@
+ALTER TABLE "referral" RENAME COLUMN "reward_points" TO "rewarded_points";

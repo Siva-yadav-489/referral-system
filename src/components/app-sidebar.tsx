@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Receipt,
+  UserPlus,
 } from "lucide-react";
 
 const navItems = [
@@ -51,6 +52,12 @@ const navItems = [
     title: "Enquiries",
     url: "/admin/enquiries",
     icon: MessageSquare,
+    exact: false,
+  },
+  {
+    title: "Referrals",
+    url: "/admin/referrals",
+    icon: UserPlus,
     exact: false,
   },
 ];
