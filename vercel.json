@@ -2,8 +2,7 @@
   "crons": [
     {
       "path": "/api/referrals/process",
-      "schedule": "0 1 * * *",
-      "timezone": "Asia/Kolkata"
+      "schedule": "0 1 * * *"
     }
   ]
 }
