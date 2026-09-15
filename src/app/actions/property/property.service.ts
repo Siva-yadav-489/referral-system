@@ -239,11 +239,16 @@ export class PropertyService {
         );
       }
 
-      const expectedCapacity = validated.type === "2-Sharing" ? 2 : 3;
+      const expectedCapacity =
+        validated.type === "1-Sharing"
+          ? 1
+          : validated.type === "2-Sharing"
+            ? 2
+            : 3;
 
       if (validated.capacity !== expectedCapacity) {
         throw new Error(
-          `${validated.type} rooms must have exactly ${expectedCapacity} beds.`,
+          `${validated.type} rooms must have exactly ${expectedCapacity} bed${expectedCapacity > 1 ? "s" : ""}.`,
         );
       }
 
@@ -323,8 +328,14 @@ export class PropertyService {
       const currentType = room.type;
       const newType = validatedData.type ?? currentType;
 
-      const oldCapacity = currentType === "2-Sharing" ? 2 : 3;
-      const newCapacity = newType === "2-Sharing" ? 2 : 3;
+      const getCapacity = (type: string) => {
+        if (type === "1-Sharing") return 1;
+        if (type === "2-Sharing") return 2;
+        return 3;
+      };
+
+      const oldCapacity = getCapacity(currentType);
+      const newCapacity = getCapacity(newType);
 
       const typeChanged = currentType !== newType;
 
@@ -342,36 +353,48 @@ export class PropertyService {
           .where(eq(beds.roomId, roomId))
           .orderBy(desc(beds.bedNumber));
 
-        /** 3-Sharing -> 2-Sharing */
-        if (oldCapacity === 3 && newCapacity === 2) {
-          const removableBed = existingBeds
-            .filter((bed) => bed.status === "VACANT")
-            .sort((a, b) => Number(b.bedNumber) - Number(a.bedNumber))[0];
+        /** Reducing capacity (e.g., 3 -> 2, 3 -> 1, 2 -> 1) */
+        if (newCapacity < oldCapacity) {
+          const bedsToRemoveCount = oldCapacity - newCapacity;
+          const sortedBeds = [...existingBeds].sort((a, b) =>
+            b.bedNumber.localeCompare(a.bedNumber),
+          );
+          const bedsToRemove = sortedBeds.slice(0, bedsToRemoveCount);
 
-          if (!removableBed) {
+          const nonVacantBed = bedsToRemove.find(
+            (bed) => bed.status !== "VACANT",
+          );
+          if (nonVacantBed) {
             throw new Error(
-              "Cannot change to 2-Sharing because the extra bed is occupied.",
+              `Cannot change to ${newType} because bed ${nonVacantBed.bedNumber} is ${nonVacantBed.status.toLowerCase()}. Only vacant beds can be removed.`,
             );
           }
 
-          await tx.delete(beds).where(eq(beds.id, removableBed.id));
+          for (const bed of bedsToRemove) {
+            await tx.delete(beds).where(eq(beds.id, bed.id));
+          }
         }
 
-        /** 2-Sharing -> 3-Sharing */
-        if (oldCapacity === 2 && newCapacity === 3) {
-          const nextBedIndex = existingBeds.length + 1;
-          console.log("nextBedIndex", nextBedIndex);
+        /** Increasing capacity (e.g., 1 -> 2, 1 -> 3, 2 -> 3) */
+        if (newCapacity > oldCapacity) {
+          for (let i = oldCapacity; i < newCapacity; i++) {
+            const letter = String.fromCharCode(65 + i);
+            const bedNumber = `${room.roomNumber}-${letter}`;
 
-          await tx.insert(beds).values({
-            id: crypto.randomUUID(),
-            roomId,
-            propertyId: room.propertyId,
-            floorId: room.floorId,
-            bedNumber: `${room.roomNumber}-${String.fromCharCode(
-              64 + nextBedIndex,
-            )}`,
-            status: "VACANT",
-          });
+            const bedExists = existingBeds.some(
+              (b) => b.bedNumber === bedNumber,
+            );
+            if (!bedExists) {
+              await tx.insert(beds).values({
+                id: crypto.randomUUID(),
+                roomId,
+                propertyId: room.propertyId,
+                floorId: room.floorId,
+                bedNumber,
+                status: "VACANT",
+              });
+            }
+          }
         }
 
         /** Update room */
@@ -622,8 +645,9 @@ export class PropertyService {
     input: {
       propertyId: string;
       floorId: string;
-      twoSharingCount: number;
-      threeSharingCount: number;
+      oneSharingCount?: number;
+      twoSharingCount?: number;
+      threeSharingCount?: number;
     },
   ): Promise<{ success: boolean; data?: Room[]; error?: string }> {
     try {
@@ -638,30 +662,82 @@ export class PropertyService {
         input.floorId,
       );
 
-      let highestNum = 0;
+      const oneCount = Math.max(0, input.oneSharingCount || 0);
+      const twoCount = Math.max(0, input.twoSharingCount || 0);
+      const threeCount = Math.max(0, input.threeSharingCount || 0);
+      const totalToCreate = oneCount + twoCount + threeCount;
+
+      if (totalToCreate <= 0) {
+        throw new Error("At least one room count must be greater than 0");
+      }
+
+      if (existingRooms.length + totalToCreate > 10) {
+        throw new Error(
+          `Floor ${floor.floorNumber} only has ${10 - existingRooms.length} slot(s) remaining. Adding ${totalToCreate} rooms would exceed the maximum of 10 rooms per floor.`,
+        );
+      }
+
       const floorNum = floor.floorNumber;
+      const usedSuffixes = new Set<number>();
       for (const r of existingRooms) {
         const match = r.roomNumber.match(/\d+$/);
         if (match) {
           const val = parseInt(match[0], 10);
           const suffix = val >= floorNum * 100 ? val - floorNum * 100 : val;
-          if (suffix > highestNum) highestNum = suffix;
+          usedSuffixes.add(suffix);
         }
       }
 
-      const totalToCreate =
-        (input.twoSharingCount || 0) + (input.threeSharingCount || 0);
-      if (totalToCreate <= 0) {
-        throw new Error("At least one room count must be greater than 0");
+      const availableSuffixes: number[] = [];
+      for (let i = 1; i <= 10; i++) {
+        if (!usedSuffixes.has(i)) {
+          availableSuffixes.push(i);
+        }
+      }
+
+      if (availableSuffixes.length < totalToCreate) {
+        throw new Error(
+          `Floor ${floor.floorNumber} only has ${availableSuffixes.length} available room number slot(s) (1-10).`,
+        );
       }
 
       return await db.transaction(async (tx) => {
         const createdRooms = [];
-        let curSuffix = highestNum;
 
-        for (let i = 0; i < (input.twoSharingCount || 0); i++) {
-          curSuffix++;
-          const roomNumber = `${floorNum}${curSuffix < 10 ? `0${curSuffix}` : curSuffix}`;
+        // 1-Sharing Rooms (1 Bed: A)
+        for (let i = 0; i < oneCount; i++) {
+          const suffix = availableSuffixes.shift()!;
+          const roomNumber = `${floorNum}${suffix < 10 ? `0${suffix}` : suffix}`;
+          const [room] = await tx
+            .insert(rooms)
+            .values({
+              id: crypto.randomUUID(),
+              propertyId: input.propertyId,
+              floorId: input.floorId,
+              roomNumber,
+              type: "1-Sharing",
+              capacity: 1,
+            })
+            .returning();
+
+          const bedValues = [
+            {
+              id: crypto.randomUUID(),
+              propertyId: input.propertyId,
+              floorId: input.floorId,
+              roomId: room.id,
+              bedNumber: `${roomNumber}-A`,
+              status: "VACANT" as const,
+            },
+          ];
+          await tx.insert(beds).values(bedValues);
+          createdRooms.push(room);
+        }
+
+        // 2-Sharing Rooms (2 Beds: A, B)
+        for (let i = 0; i < twoCount; i++) {
+          const suffix = availableSuffixes.shift()!;
+          const roomNumber = `${floorNum}${suffix < 10 ? `0${suffix}` : suffix}`;
           const [room] = await tx
             .insert(rooms)
             .values({
@@ -696,9 +772,10 @@ export class PropertyService {
           createdRooms.push(room);
         }
 
-        for (let i = 0; i < (input.threeSharingCount || 0); i++) {
-          curSuffix++;
-          const roomNumber = `${floorNum}${curSuffix < 10 ? `0${curSuffix}` : curSuffix}`;
+        // 3-Sharing Rooms (3 Beds: A, B, C)
+        for (let i = 0; i < threeCount; i++) {
+          const suffix = availableSuffixes.shift()!;
+          const roomNumber = `${floorNum}${suffix < 10 ? `0${suffix}` : suffix}`;
           const [room] = await tx
             .insert(rooms)
             .values({

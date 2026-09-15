@@ -28,7 +28,11 @@ export const customerIdProofType = pgEnum("customer_id_proof_type", [
   "PAN_CARD",
 ]);
 
-export const roomTypeEnum = pgEnum("room_type", ["2-Sharing", "3-Sharing"]);
+export const roomTypeEnum = pgEnum("room_type", [
+  "1-Sharing",
+  "2-Sharing",
+  "3-Sharing",
+]);
 
 export const bedStatusEnum = pgEnum("bed_status", [
   "VACANT",

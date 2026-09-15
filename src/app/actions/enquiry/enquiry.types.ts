@@ -13,7 +13,7 @@ export const zodCreateEnquirySchema = z.object({
   name: z.string().min(1, "Name is required"),
   contactNo: z.string().min(10, "Contact no. is required"),
   email: z.string().email({ message: "Email is required" }),
-  roomType: z.enum(["2-Sharing", "3-Sharing"]).default("2-Sharing"),
+  roomType: z.enum(["1-Sharing", "2-Sharing", "3-Sharing"]).default("2-Sharing"),
   message: z.string().optional(),
   status: z
     .enum(["UNREAD", "CONTACTED", "CONVERTED", "NOT_INTERESTED"])

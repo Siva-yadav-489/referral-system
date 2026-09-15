@@ -35,6 +35,7 @@ import {
   Floor,
   Room,
   Bed,
+  RoomSharingType,
 } from "@/app/actions/property/property.types";
 import {
   addFloorAction,
@@ -76,7 +77,7 @@ export function PropertyDetailView({
   const [addRoomFloor, setAddRoomFloor] = useState<Floor | null>(null);
   const [singleRoomData, setSingleRoomData] = useState({
     roomNumber: "",
-    type: "2-Sharing" as "2-Sharing" | "3-Sharing",
+    type: "2-Sharing" as RoomSharingType,
     capacity: 2,
   });
   const [addingRoomLoading, setAddingRoomLoading] = useState(false);
@@ -84,6 +85,7 @@ export function PropertyDetailView({
   // Bulk Add Rooms Modal state
   const [bulkFloor, setBulkFloor] = useState<Floor | null>(null);
   const [bulkRoomCounts, setBulkRoomCounts] = useState({
+    oneSharingCount: 1,
     twoSharingCount: 2,
     threeSharingCount: 1,
   });
@@ -93,7 +95,7 @@ export function PropertyDetailView({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingRoomData, setEditingRoomData] = useState({
     roomNumber: "",
-    type: "2-Sharing" as "2-Sharing" | "3-Sharing",
+    type: "2-Sharing" as RoomSharingType,
   });
   const [updatingRoomLoading, setUpdatingRoomLoading] = useState(false);
 
@@ -411,6 +413,10 @@ export function PropertyDetailView({
     }
     const remaining = 10 - existingRoomsCount;
     setBulkRoomCounts({
+      oneSharingCount: Math.min(
+        1,
+        Math.max(0, remaining - Math.min(2, remaining)),
+      ),
       twoSharingCount: Math.min(2, remaining),
       threeSharingCount: Math.min(
         1,
@@ -424,6 +430,7 @@ export function PropertyDetailView({
     e.preventDefault();
     if (!bulkFloor) return;
     const total =
+      (bulkRoomCounts.oneSharingCount || 0) +
       (bulkRoomCounts.twoSharingCount || 0) +
       (bulkRoomCounts.threeSharingCount || 0);
     if (total <= 0) {
@@ -445,6 +452,7 @@ export function PropertyDetailView({
       const res = await addRoomsBulkAction({
         propertyId: property.id,
         floorId: bulkFloor.id,
+        oneSharingCount: Number(bulkRoomCounts.oneSharingCount) || 0,
         twoSharingCount: Number(bulkRoomCounts.twoSharingCount) || 0,
         threeSharingCount: Number(bulkRoomCounts.threeSharingCount) || 0,
       });
@@ -853,7 +861,25 @@ export function PropertyDetailView({
               {/* Sharing type */}
               <div className="space-y-1.5">
                 <Label className="text-xs">Sharing Configuration</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSingleRoomData({
+                        ...singleRoomData,
+                        type: "1-Sharing",
+                        capacity: 1,
+                      })
+                    }
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      singleRoomData.type === "1-Sharing"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    1-Sharing (1 Bed)
+                  </button>
+
                   <button
                     type="button"
                     onClick={() =>
@@ -891,9 +917,12 @@ export function PropertyDetailView({
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Beds {singleRoomData.roomNumber}-A,{" "}
-                  {singleRoomData.roomNumber}-B
-                  {singleRoomData.type === "3-Sharing"
+                  Bed{singleRoomData.capacity > 1 ? "s" : ""}{" "}
+                  {singleRoomData.roomNumber}-A
+                  {singleRoomData.capacity >= 2
+                    ? `, ${singleRoomData.roomNumber}-B`
+                    : ""}
+                  {singleRoomData.capacity >= 3
                     ? `, ${singleRoomData.roomNumber}-C`
                     : ""}{" "}
                   will be initialized.
@@ -952,6 +981,28 @@ export function PropertyDetailView({
 
             <form onSubmit={handleBulkAddRoomsSubmit} className="space-y-4">
               <div className="space-y-1.5">
+                <Label htmlFor="bulk-1s" className="text-xs">
+                  1-Sharing Rooms (1 Bed each)
+                </Label>
+                <Input
+                  id="bulk-1s"
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={bulkRoomCounts.oneSharingCount}
+                  onChange={(e) =>
+                    setBulkRoomCounts({
+                      ...bulkRoomCounts,
+                      oneSharingCount: Math.max(
+                        0,
+                        parseInt(e.target.value) || 0,
+                      ),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="bulk-2s" className="text-xs">
                   2-Sharing Rooms (2 Beds each)
                 </Label>
@@ -997,20 +1048,33 @@ export function PropertyDetailView({
 
               <div className="p-3 rounded-lg bg-muted/40 border border-border/70 text-xs text-muted-foreground space-y-1">
                 <p className="font-semibold text-foreground">Summary:</p>
-                <p>
-                  • {bulkRoomCounts.twoSharingCount} 2-Sharing rooms (
-                  {bulkRoomCounts.twoSharingCount * 2} beds)
-                </p>
-                <p>
-                  • {bulkRoomCounts.threeSharingCount} 3-Sharing rooms (
-                  {bulkRoomCounts.threeSharingCount * 3} beds)
-                </p>
+                {bulkRoomCounts.oneSharingCount > 0 && (
+                  <p>
+                    • {bulkRoomCounts.oneSharingCount} 1-Sharing rooms (
+                    {bulkRoomCounts.oneSharingCount * 1} bed
+                    {bulkRoomCounts.oneSharingCount > 1 ? "s" : ""})
+                  </p>
+                )}
+                {bulkRoomCounts.twoSharingCount > 0 && (
+                  <p>
+                    • {bulkRoomCounts.twoSharingCount} 2-Sharing rooms (
+                    {bulkRoomCounts.twoSharingCount * 2} beds)
+                  </p>
+                )}
+                {bulkRoomCounts.threeSharingCount > 0 && (
+                  <p>
+                    • {bulkRoomCounts.threeSharingCount} 3-Sharing rooms (
+                    {bulkRoomCounts.threeSharingCount * 3} beds)
+                  </p>
+                )}
                 <p className="text-primary font-medium pt-0.5">
                   Total:{" "}
-                  {bulkRoomCounts.twoSharingCount +
+                  {bulkRoomCounts.oneSharingCount +
+                    bulkRoomCounts.twoSharingCount +
                     bulkRoomCounts.threeSharingCount}{" "}
                   rooms,{" "}
-                  {bulkRoomCounts.twoSharingCount * 2 +
+                  {bulkRoomCounts.oneSharingCount * 1 +
+                    bulkRoomCounts.twoSharingCount * 2 +
                     bulkRoomCounts.threeSharingCount * 3}{" "}
                   beds.
                 </p>
@@ -1032,7 +1096,8 @@ export function PropertyDetailView({
                   size="sm"
                   disabled={
                     bulkAddingLoading ||
-                    bulkRoomCounts.twoSharingCount +
+                    bulkRoomCounts.oneSharingCount +
+                      bulkRoomCounts.twoSharingCount +
                       bulkRoomCounts.threeSharingCount <=
                       0
                   }
@@ -1085,7 +1150,24 @@ export function PropertyDetailView({
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Sharing Configuration</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingRoomData({
+                        ...editingRoomData,
+                        type: "1-Sharing",
+                      })
+                    }
+                    className={`p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                      editingRoomData.type === "1-Sharing"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    1-Sharing
+                  </button>
+
                   <button
                     type="button"
                     onClick={() =>

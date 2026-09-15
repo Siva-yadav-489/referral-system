@@ -226,8 +226,9 @@ export async function addRoomAction(
 export async function addRoomsBulkAction(input: {
   propertyId: string;
   floorId: string;
-  twoSharingCount: number;
-  threeSharingCount: number;
+  oneSharingCount?: number;
+  twoSharingCount?: number;
+  threeSharingCount?: number;
 }) {
   try {
     const ownerId = await getAdminOwnerId();

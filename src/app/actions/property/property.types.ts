@@ -1,4 +1,4 @@
-import { properties, floors, rooms, beds } from "@/db/schema";
+import { properties, floors, rooms, beds, roomTypeEnum } from "@/db/schema";
 import { z } from "zod";
 
 export type Property = typeof properties.$inferSelect;
@@ -9,6 +9,7 @@ export type Room = typeof rooms.$inferSelect;
 export type NewRoom = typeof rooms.$inferInsert;
 export type Bed = typeof beds.$inferSelect;
 export type NewBed = typeof beds.$inferInsert;
+export type RoomSharingType = (typeof roomTypeEnum.enumValues)[number];
 
 export const zodCreatePropertySchema = z.object({
   name: z.string().min(2, "Property name required"),
@@ -35,11 +36,12 @@ export const zodCreateRoomSchema = z
     propertyId: z.string().min(1, "Property ID required"),
     floorId: z.string().min(1, "Floor ID required"),
     roomNumber: z.string().min(1, "Room number required"),
-    type: z.enum(["2-Sharing", "3-Sharing"]),
-    capacity: z.coerce.number().int().min(2).max(3),
+    type: z.enum(["1-Sharing", "2-Sharing", "3-Sharing"]),
+    capacity: z.coerce.number().int().min(1).max(3),
   })
   .superRefine((data, ctx) => {
-    const expectedCapacity = data.type === "2-Sharing" ? 2 : 3;
+    const expectedCapacity =
+      data.type === "1-Sharing" ? 1 : data.type === "2-Sharing" ? 2 : 3;
 
     if (data.capacity !== expectedCapacity) {
       ctx.addIssue({

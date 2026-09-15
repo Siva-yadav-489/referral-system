@@ -1,0 +1,1 @@
+ALTER TYPE "public"."room_type" ADD VALUE '1-Sharing' BEFORE '2-Sharing';
