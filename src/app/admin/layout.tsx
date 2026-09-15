@@ -18,7 +18,7 @@ export default async function AdminLayout({
   });
 
   if (!session) {
-    redirect("/");
+    redirect("/login");
   }
 
   return (

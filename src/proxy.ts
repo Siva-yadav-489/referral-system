@@ -38,6 +38,10 @@ export function proxy(request: NextRequest) {
 
   // 3. Restrict logged-in users from accessing auth and referral routes
   if (sessionToken && isGuestOnlyRoute) {
+    if (pathname === "/login" || pathname === "/signup") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+
     return NextResponse.redirect(new URL("/", request.url));
   }
 

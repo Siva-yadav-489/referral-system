@@ -36,7 +36,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/admin";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -78,6 +78,7 @@ export function LoginForm({
       const res = await authClient.signIn.email({
         email: email.trim(),
         password,
+        callbackURL: callbackUrl,
       });
 
       if (res.error) {
@@ -85,9 +86,9 @@ export function LoginForm({
           general:
             res.error.message || "Invalid email or password. Please try again.",
         });
+        setLoading(false);
       } else {
-        router.push(callbackUrl);
-        router.refresh();
+        router.replace(callbackUrl);
       }
     } catch (err: unknown) {
       const message =
