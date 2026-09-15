@@ -15,25 +15,22 @@ import {
 } from "@/app/actions/enquiry/enquiry.types";
 import { Property } from "@/app/actions/property/property.types";
 import { EnquiriesStatsCards } from "./enquiries-stats-cards";
-import { EnquiriesFilterToolbar } from "./enquiries-filter-toolbar";
 import { EnquiryCard } from "./enquiry-card";
 import { z } from "zod";
 import { PageHeader } from "../page-header";
+import { FilterToolbar, StatusFilterTabs } from "../filter-toolbar";
+import { getMonth, getYear } from "date-fns";
 
 type EnquiryFilter = z.infer<typeof zodGetEnquiriesFilterSchema>;
 
 interface EnquiriesClientProps {
   initialEnquiries: EnquiryWithDetails[];
   properties: Property[];
-  initialMonth: number;
-  initialYear: number;
 }
 
 export function EnquiriesClient({
   initialEnquiries,
   properties,
-  initialMonth,
-  initialYear,
 }: EnquiriesClientProps) {
   const [enquiries, setEnquiries] =
     useState<EnquiryWithDetails[]>(initialEnquiries);
@@ -43,12 +40,27 @@ export function EnquiriesClient({
   );
 
   // Filter States
-  const [selectedMonth, setSelectedMonth] = useState<number>(initialMonth);
-  const [selectedYear, setSelectedYear] = useState<number>(initialYear);
-  const [useMonthFilter, setUseMonthFilter] = useState<boolean>(false);
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    getMonth(new Date()) + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(getYear(new Date()));
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const buildHighLevelFilter = (): EnquiryFilter => {
+    const filter: EnquiryFilter = {};
+    if (selectedYear != null) {
+      filter.year = selectedYear;
+    }
+    if (selectedMonth != null) {
+      filter.month = selectedMonth;
+    }
+    if (propertyFilter !== "ALL") {
+      filter.propertyId = propertyFilter;
+    }
+    return filter;
+  };
 
   const fetchEnquiries = async (filter: EnquiryFilter) => {
     setLoading(true);
@@ -61,23 +73,8 @@ export function EnquiriesClient({
     setLoading(false);
   };
 
-  // Re-fetch when server filters change
   useEffect(() => {
-    const filter: EnquiryFilter = {};
-    if (useMonthFilter) {
-      filter.month = selectedMonth;
-      filter.year = selectedYear;
-    }
-    if (statusFilter !== "ALL") {
-      filter.status = statusFilter as
-        | "UNREAD"
-        | "CONTACTED"
-        | "CONVERTED"
-        | "NOT_INTERESTED";
-    }
-    if (propertyFilter !== "ALL") {
-      filter.propertyId = propertyFilter;
-    }
+    const filter = buildHighLevelFilter();
 
     const load = async () => {
       setLoading(true);
@@ -90,31 +87,10 @@ export function EnquiriesClient({
       setLoading(false);
     };
     void load();
-  }, [
-    selectedMonth,
-    selectedYear,
-    useMonthFilter,
-    statusFilter,
-    propertyFilter,
-  ]);
+  }, [selectedMonth, selectedYear, propertyFilter]);
 
   const handleRefresh = () => {
-    const filter: EnquiryFilter = {};
-    if (useMonthFilter) {
-      filter.month = selectedMonth;
-      filter.year = selectedYear;
-    }
-    if (statusFilter !== "ALL") {
-      filter.status = statusFilter as
-        | "UNREAD"
-        | "CONTACTED"
-        | "CONVERTED"
-        | "NOT_INTERESTED";
-    }
-    if (propertyFilter !== "ALL") {
-      filter.propertyId = propertyFilter;
-    }
-    void fetchEnquiries(filter);
+    void fetchEnquiries(buildHighLevelFilter());
   };
 
   const handleUpdateStatus = async (
@@ -143,8 +119,7 @@ export function EnquiriesClient({
     }
   };
 
-  // Client-side quick search filter
-  const filteredEnquiries = enquiries.filter((item) => {
+  const scopedEnquiries = enquiries.filter((item) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const nameMatch = item.name.toLowerCase().includes(q);
@@ -154,6 +129,10 @@ export function EnquiriesClient({
     const propMatch = item.property?.name?.toLowerCase().includes(q);
     return nameMatch || phoneMatch || emailMatch || messageMatch || propMatch;
   });
+
+  const filteredEnquiries = scopedEnquiries.filter(
+    (item) => statusFilter === "ALL" || item.status === statusFilter,
+  );
 
   return (
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full">
@@ -179,24 +158,31 @@ export function EnquiriesClient({
           </div>
         </PageHeader>
 
-        {/* Summary Stats Cards */}
-        <EnquiriesStatsCards enquiries={filteredEnquiries} />
-
-        {/* Filter Toolbar */}
-        <EnquiriesFilterToolbar
+        <FilterToolbar
           properties={properties}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
-          useMonthFilter={useMonthFilter}
-          statusFilter={statusFilter}
           propertyFilter={propertyFilter}
           searchQuery={searchQuery}
+          searchPlaceholder="Search prospect, phone, email..."
           onMonthChange={setSelectedMonth}
           onYearChange={setSelectedYear}
-          onToggleMonthFilter={() => setUseMonthFilter((v) => !v)}
-          onStatusChange={setStatusFilter}
           onPropertyChange={setPropertyFilter}
           onSearchChange={setSearchQuery}
+        />
+
+        <EnquiriesStatsCards enquiries={scopedEnquiries} />
+
+        <StatusFilterTabs
+          statusFilter={statusFilter}
+          statusTabs={[
+            "ALL",
+            "UNREAD",
+            "CONTACTED",
+            "CONVERTED",
+            "NOT_INTERESTED",
+          ]}
+          onStatusChange={setStatusFilter}
         />
 
         {/* Enquiries List */}

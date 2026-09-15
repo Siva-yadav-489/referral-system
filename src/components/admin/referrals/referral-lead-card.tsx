@@ -6,6 +6,7 @@ import {
   Gift,
   Mail,
   Phone,
+  Plus,
   User,
   UserPlus,
 } from "lucide-react";
@@ -99,9 +100,9 @@ export function ReferralLeadCard({ lead }: ReferralLeadCardProps) {
               </span>
               {lead.referral?.rewardedPoints &&
                 lead.referral.status === "REWARDED" && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-400">
-                    <Gift className="w-3.5 h-3.5" />
-                    {lead.referral.rewardedPoints} points awarded
+                  <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-400">
+                    <Plus className="w-3 h-3 mb-0.5" />
+                    {lead.referral.rewardedPoints} points
                   </span>
                 )}
             </div>

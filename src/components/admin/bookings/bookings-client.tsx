@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BedSingle, Loader2, Plus, RefreshCw, Search } from "lucide-react";
+import { BedSingle, Loader2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   getBookingsAction,
   getPropertiesAction,
@@ -27,7 +26,14 @@ import {
 } from "./checkout-tenant-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "../page-header";
+import {
+  FilterToolbar,
+  FilterStatusTab,
+  StatusFilterTabs,
+} from "../filter-toolbar";
 import Link from "next/link";
+import BookingStatsCards from "./booking-stats-cards";
+import { getMonth, getYear } from "date-fns";
 
 interface BookingsClientProps {
   initialBookings: BookingWithDetails[];
@@ -47,10 +53,13 @@ export function BookingsClient({
     useState<BedWithRoomDetails[]>(initialAvailableBeds);
   const [loading, setLoading] = useState(false);
 
-  // Filters & search
-  const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "ACTIVE" | "COMPLETED"
-  >("ALL");
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    getMonth(new Date()) + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(getYear(new Date()));
+
+  // Status, Property & Search States
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPropertyFilter, setSelectedPropertyFilter] =
     useState<string>("ALL");
@@ -92,22 +101,18 @@ export function BookingsClient({
 
   // Refetch all dependencies
   const refreshAll = async () => {
-    const load = async () => {
-      setLoading(true);
-      const propId =
-        selectedPropertyFilter !== "ALL" ? selectedPropertyFilter : undefined;
-      const [bookingsRes, propsRes, bedsRes] = await Promise.all([
-        getBookingsAction(propId),
-        getPropertiesAction(),
-        getAvailableBedsAction(),
-      ]);
-      if (bookingsRes.success && bookingsRes.data)
-        setBookings(bookingsRes.data);
-      if (propsRes.success && propsRes.data) setProperties(propsRes.data);
-      if (bedsRes.success && bedsRes.data) setAvailableBeds(bedsRes.data);
-      setLoading(false);
-    };
-    void load();
+    setLoading(true);
+    const propId =
+      selectedPropertyFilter !== "ALL" ? selectedPropertyFilter : undefined;
+    const [bookingsRes, propsRes, bedsRes] = await Promise.all([
+      getBookingsAction(propId),
+      getPropertiesAction(),
+      getAvailableBedsAction(),
+    ]);
+    if (bookingsRes.success && bookingsRes.data) setBookings(bookingsRes.data);
+    if (propsRes.success && propsRes.data) setProperties(propsRes.data);
+    if (bedsRes.success && bedsRes.data) setAvailableBeds(bedsRes.data);
+    setLoading(false);
   };
 
   const handleExtendStay = async (e: React.FormEvent) => {
@@ -157,26 +162,100 @@ export function BookingsClient({
     }
   };
 
-  // Filtered bookings
-  const filteredBookings = bookings.filter((b) => {
-    const matchesStatus = statusFilter === "ALL" || b.status === statusFilter;
+  const isDateInPeriod = (
+    dateStr?: string | null,
+    month = selectedMonth,
+    year = selectedYear,
+  ) => {
+    if (!dateStr) return false;
+    const part = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+    const [parsedYear, parsedMonth] = part.split("-").map(Number);
+    if (year != null && parsedYear !== year) return false;
+    if (month != null && parsedMonth !== month) return false;
+    return true;
+  };
 
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      !query ||
-      b.customer?.name.toLowerCase().includes(query) ||
-      b.customer?.contactNo.includes(query) ||
-      b.customer?.email?.toLowerCase().includes(query) ||
-      b.bed?.bedNumber.toLowerCase().includes(query) ||
-      b.bed?.room?.roomNumber.toLowerCase().includes(query);
+  const isStayInPeriod = (
+    startStr: string,
+    endStr?: string | null,
+    month = selectedMonth,
+    year = selectedYear,
+  ) => {
+    if (year == null && month == null) return true;
 
-    return matchesStatus && matchesSearch;
+    const periodStart =
+      month != null && year != null
+        ? new Date(year, month - 1, 1)
+        : new Date(year as number, 0, 1);
+    const periodEnd =
+      month != null && year != null
+        ? new Date(year, month, 0, 23, 59, 59)
+        : new Date(year as number, 11, 31, 23, 59, 59);
+
+    const startDate = new Date(startStr);
+    const endDate = endStr ? new Date(endStr) : null;
+
+    if (startDate > periodEnd) return false;
+    if (endDate && endDate < periodStart) return false;
+    return true;
+  };
+
+  const matchesSearchQuery = (booking: BookingWithDetails) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    return Boolean(
+      booking.customer?.name?.toLowerCase().includes(query) ||
+      booking.customer?.contactNo?.includes(query) ||
+      booking.customer?.email?.toLowerCase().includes(query) ||
+      booking.bed?.bedNumber?.toLowerCase().includes(query) ||
+      booking.bed?.room?.roomNumber?.toLowerCase().includes(query) ||
+      booking.property?.name?.toLowerCase().includes(query),
+    );
+  };
+
+  const scopedBookings = bookings.filter(
+    (booking) =>
+      isStayInPeriod(booking.startDate, booking.endDate) &&
+      matchesSearchQuery(booking),
+  );
+
+  const statusTabs: FilterStatusTab[] = useMemo(() => {
+    const activeCount = scopedBookings.filter(
+      (b) => b.status === "ACTIVE",
+    ).length;
+    const extendedCount = scopedBookings.filter(
+      (b) => b.status === "EXTENDED",
+    ).length;
+    const checkInsCount = scopedBookings.filter((b) =>
+      isDateInPeriod(b.startDate),
+    ).length;
+    const checkOutsCount = scopedBookings.filter((b) =>
+      isDateInPeriod(b.endDate),
+    ).length;
+    const completedCount = scopedBookings.filter(
+      (b) => b.status === "COMPLETED",
+    ).length;
+
+    return [
+      { label: "ALL", value: "ALL", count: scopedBookings.length },
+      { label: "ACTIVE", value: "ACTIVE", count: activeCount },
+      { label: "EXTENDED", value: "EXTENDED", count: extendedCount },
+      { label: "CHECK-INS", value: "CHECKINS", count: checkInsCount },
+      { label: "CHECK-OUTS", value: "CHECKOUTS", count: checkOutsCount },
+      { label: "COMPLETED", value: "COMPLETED", count: completedCount },
+    ];
+  }, [scopedBookings, selectedMonth, selectedYear]);
+
+  const filteredBookings = scopedBookings.filter((booking) => {
+    if (statusFilter === "CHECKINS") {
+      return isDateInPeriod(booking.startDate);
+    }
+    if (statusFilter === "CHECKOUTS") {
+      return isDateInPeriod(booking.endDate);
+    }
+    return statusFilter === "ALL" || booking.status === statusFilter;
   });
-
-  const activeCount = bookings.filter((b) => b.status === "ACTIVE").length;
-  const completedCount = bookings.filter(
-    (b) => b.status === "COMPLETED",
-  ).length;
 
   return (
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full space-y-6">
@@ -211,77 +290,30 @@ export function BookingsClient({
         </div>
       </PageHeader>
 
-      {/* Filter / Search Bar */}
-      <Card className="bg-card border-border shadow-sm py-0">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-80">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search tenant, phone, bed..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 text-xs h-9"
-              />
-            </div>
+      <FilterToolbar
+        properties={properties}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        propertyFilter={selectedPropertyFilter}
+        searchQuery={searchQuery}
+        searchPlaceholder="Search tenant, phone, bed, room..."
+        onMonthChange={setSelectedMonth}
+        onYearChange={setSelectedYear}
+        onPropertyChange={setSelectedPropertyFilter}
+        onSearchChange={setSearchQuery}
+      />
 
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              {/* Property Select */}
-              <select
-                value={selectedPropertyFilter}
-                onChange={(e) => setSelectedPropertyFilter(e.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg text-xs px-2.5 py-1.5 h-9"
-              >
-                <option value="ALL">All Properties</option>
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+      <BookingStatsCards
+        bookings={scopedBookings}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
 
-              {/* Status Filter Buttons */}
-              <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("ALL")}
-                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                    statusFilter === "ALL"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  All ({bookings.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("ACTIVE")}
-                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                    statusFilter === "ACTIVE"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Active ({activeCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("COMPLETED")}
-                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                    statusFilter === "COMPLETED"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Past ({completedCount})
-                </button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <StatusFilterTabs
+        statusFilter={statusFilter}
+        statusTabs={statusTabs}
+        onStatusChange={setStatusFilter}
+      />
 
       {/* Bookings List */}
       <div className="space-y-3">
@@ -302,7 +334,8 @@ export function BookingsClient({
               <p className="text-xs text-muted-foreground max-w-sm">
                 {searchQuery ||
                 statusFilter !== "ALL" ||
-                selectedPropertyFilter !== "ALL"
+                selectedPropertyFilter !== "ALL" ||
+                selectedYear != null
                   ? "No bookings match the selected filters. Try changing or resetting your search."
                   : "No tenant bookings have been created yet. Click below to add the first booking."}
               </p>
@@ -347,7 +380,6 @@ export function BookingsClient({
                 setCheckoutTarget({
                   id,
                   name,
-                  bedNumber: booking.bed?.bedNumber,
                 })
               }
               onCancel={(id) => setCancelTarget(id)}
@@ -356,16 +388,14 @@ export function BookingsClient({
         )}
       </div>
 
-      {/* Reusable New Booking Modal */}
-      {showNewBookingModal && (
-        <NewBookingModal
-          isOpen={showNewBookingModal}
-          properties={properties}
-          initialAvailableBeds={availableBeds}
-          onClose={() => setShowNewBookingModal(false)}
-          onSuccess={refreshAll}
-        />
-      )}
+      {/* New Booking Modal */}
+      <NewBookingModal
+        isOpen={showNewBookingModal}
+        properties={properties}
+        initialAvailableBeds={availableBeds}
+        onClose={() => setShowNewBookingModal(false)}
+        onSuccess={refreshAll}
+      />
 
       {/* Extend Stay Modal */}
       {extendingBooking && (

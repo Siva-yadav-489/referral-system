@@ -7,10 +7,6 @@ import {
 import { ReferralsClient } from "@/components/admin/referrals/referrals-client";
 
 async function ReferralsContent() {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
   const [referralsRes, propertiesRes] = await Promise.all([
     getReferralLeadsAction(),
     getPropertiesAction(),
@@ -25,8 +21,6 @@ async function ReferralsContent() {
     <ReferralsClient
       initialReferralLeads={initialReferralLeads}
       properties={properties}
-      initialMonth={currentMonth}
-      initialYear={currentYear}
     />
   );
 }

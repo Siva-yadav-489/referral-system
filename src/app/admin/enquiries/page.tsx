@@ -7,10 +7,6 @@ import {
 import { EnquiriesClient } from "@/components/admin/enquiries/enquiries-client";
 
 async function EnquiriesContent() {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
   const [enquiriesRes, propertiesRes] = await Promise.all([
     getEnquiriesAction(),
     getPropertiesAction(),
@@ -25,8 +21,6 @@ async function EnquiriesContent() {
     <EnquiriesClient
       initialEnquiries={initialEnquiries}
       properties={properties}
-      initialMonth={currentMonth}
-      initialYear={currentYear}
     />
   );
 }

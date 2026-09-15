@@ -7,12 +7,8 @@ import {
 import { BillingClient } from "@/components/admin/billing/billing-client";
 
 async function BillingContent() {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
   const [invoicesRes, propertiesRes] = await Promise.all([
-    getInvoicesAction({ month: currentMonth, year: currentYear }),
+    getInvoicesAction(),
     getPropertiesAction(),
   ]);
 
@@ -25,8 +21,6 @@ async function BillingContent() {
     <BillingClient
       initialInvoices={initialInvoices}
       properties={properties}
-      initialMonth={currentMonth}
-      initialYear={currentYear}
     />
   );
 }

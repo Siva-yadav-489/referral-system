@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,47 +12,53 @@ import {
 } from "@/app/actions/referrals/referral.types";
 import { Property } from "@/app/actions/property/property.types";
 import { ReferralsStatsCards } from "./referrals-stats-cards";
-import { ReferralsFilterToolbar } from "./referrals-filter-toolbar";
 import { ReferralLeadCard } from "./referral-lead-card";
-import { z } from "zod";
 import { PageHeader } from "../page-header";
+import { FilterToolbar, StatusFilterTabs } from "../filter-toolbar";
+import { z } from "zod";
+import { getMonth, getYear } from "date-fns";
 
 type ReferralFilter = z.infer<typeof zodGetReferralsFilterSchema>;
 
 interface ReferralsClientProps {
   initialReferralLeads: ReferralLeadWithDetails[];
   properties: Property[];
-  initialMonth: number;
-  initialYear: number;
 }
+
+const REFERRAL_STATUS_TABS = [
+  "ALL",
+  "PENDING",
+  "ACTIVE",
+  "QUALIFIED",
+  "REWARDED",
+  "DISQUALIFIED",
+];
 
 export function ReferralsClient({
   initialReferralLeads,
   properties,
-  initialMonth,
-  initialYear,
 }: ReferralsClientProps) {
   const [referralLeads, setReferralLeads] =
     useState<ReferralLeadWithDetails[]>(initialReferralLeads);
   const [loading, setLoading] = useState(false);
 
-  const [selectedMonth, setSelectedMonth] = useState<number>(initialMonth);
-  const [selectedYear, setSelectedYear] = useState<number>(initialYear);
-  const [useMonthFilter, setUseMonthFilter] = useState<boolean>(false);
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    getMonth(new Date()) + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(getYear(new Date()));
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const buildFilter = (): ReferralFilter => {
+  const buildFilter = useCallback((): ReferralFilter => {
     const filter: ReferralFilter = {};
 
-    if (useMonthFilter) {
-      filter.month = selectedMonth;
+    if (selectedYear != null) {
       filter.year = selectedYear;
     }
 
-    if (statusFilter !== "ALL") {
-      filter.status = statusFilter as ReferralFilter["status"];
+    if (selectedMonth != null) {
+      filter.month = selectedMonth;
     }
 
     if (propertyFilter !== "ALL") {
@@ -60,48 +66,69 @@ export function ReferralsClient({
     }
 
     return filter;
-  };
+  }, [selectedMonth, selectedYear, propertyFilter]);
 
-  const fetchReferralLeads = async (filter: ReferralFilter) => {
+  const fetchReferralLeads = useCallback(async (filter: ReferralFilter) => {
     setLoading(true);
-    const res = await getReferralLeadsAction(filter);
-    if (res.success && res.data) {
-      setReferralLeads(res.data);
-    } else {
-      toast.error(res.error || "Failed to load referrals");
+    try {
+      const res = await getReferralLeadsAction(filter);
+      if (res.success && res.data) {
+        setReferralLeads(res.data);
+      } else {
+        toast.error(res.error || "Failed to load referrals");
+      }
+    } catch (error) {
+      console.error("Failed to fetch referrals:", error);
+      toast.error("Failed to load referrals");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
+  // Re-fetch when server filters change
   useEffect(() => {
     void fetchReferralLeads(buildFilter());
-  }, [selectedMonth, selectedYear, useMonthFilter, statusFilter, propertyFilter]);
+  }, [buildFilter, fetchReferralLeads]);
 
   const handleRefresh = () => {
     void fetchReferralLeads(buildFilter());
   };
 
-  const filteredReferralLeads = referralLeads.filter((item) => {
-    if (!searchQuery.trim()) return true;
+  const scopedReferralLeads = referralLeads.filter((item) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
 
-    const q = searchQuery.toLowerCase();
-    const refereeNameMatch = item.refereeName.toLowerCase().includes(q);
-    const refereePhoneMatch = item.refereeContactNo.includes(q);
-    const refereeEmailMatch = item.refereeEmail?.toLowerCase().includes(q);
-    const referrerNameMatch = item.referrer?.name?.toLowerCase().includes(q);
-    const referrerPhoneMatch = item.referrer?.contactNo?.includes(q);
-    const referrerEmailMatch = item.referrer?.email?.toLowerCase().includes(q);
-    const propMatch = item.property?.name?.toLowerCase().includes(q);
+    const refereeNameMatch = item.refereeName?.toLowerCase().includes(query);
+    const refereePhoneMatch = item.refereeContactNo
+      ?.toLowerCase()
+      .includes(query);
+    const refereeEmailMatch = item.refereeEmail?.toLowerCase().includes(query);
+    const referrerNameMatch = item.referrer?.name
+      ?.toLowerCase()
+      .includes(query);
+    const referrerPhoneMatch = item.referrer?.contactNo
+      ?.toLowerCase()
+      .includes(query);
+    const referrerEmailMatch = item.referrer?.email
+      ?.toLowerCase()
+      .includes(query);
+    const propertyMatch = item.property?.name?.toLowerCase().includes(query);
 
-    return (
+    return Boolean(
       refereeNameMatch ||
       refereePhoneMatch ||
       refereeEmailMatch ||
       referrerNameMatch ||
       referrerPhoneMatch ||
       referrerEmailMatch ||
-      propMatch
+      propertyMatch,
     );
+  });
+
+  const filteredReferralLeads = scopedReferralLeads.filter((item) => {
+    if (statusFilter === "ALL") return true;
+    if (statusFilter === "PENDING") return !item.referral;
+    return item.referral?.status === statusFilter;
   });
 
   return (
@@ -120,35 +147,42 @@ export function ReferralsClient({
               className="text-xs cursor-pointer"
             >
               <RefreshCw
-                className={`w-3.5 h-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`}
+                className={`w-3.5 h-3.5 mr-1.5 ${
+                  loading ? "animate-spin" : ""
+                }`}
               />
               Refresh
             </Button>
           </div>
         </PageHeader>
 
-        <ReferralsStatsCards referralLeads={filteredReferralLeads} />
-
-        <ReferralsFilterToolbar
+        <FilterToolbar
           properties={properties}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
-          useMonthFilter={useMonthFilter}
-          statusFilter={statusFilter}
           propertyFilter={propertyFilter}
           searchQuery={searchQuery}
+          searchPlaceholder="Search referrer, referee, phone..."
           onMonthChange={setSelectedMonth}
           onYearChange={setSelectedYear}
-          onToggleMonthFilter={() => setUseMonthFilter((value) => !value)}
-          onStatusChange={setStatusFilter}
           onPropertyChange={setPropertyFilter}
           onSearchChange={setSearchQuery}
+        />
+
+        <ReferralsStatsCards referralLeads={scopedReferralLeads} />
+
+        <StatusFilterTabs
+          statusFilter={statusFilter}
+          statusTabs={REFERRAL_STATUS_TABS}
+          onStatusChange={setStatusFilter}
         />
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Loading referrals...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading referrals...
+            </p>
           </div>
         ) : filteredReferralLeads.length === 0 ? (
           <Card className="bg-card border-dashed border-2 border-border py-16 text-center">

@@ -6,7 +6,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { EnquiryWithDetails } from "@/app/actions/enquiry/enquiry.types";
-import { MessageSquare, Clock, PhoneCall, CheckCircle2 } from "lucide-react";
 
 interface EnquiriesStatsCardsProps {
   enquiries: EnquiryWithDetails[];
@@ -37,9 +36,6 @@ export function EnquiriesStatsCards({ enquiries }: EnquiriesStatsCardsProps) {
               {totalCount}
             </CardTitle>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <MessageSquare className="w-4 h-4" />
-          </div>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground">
           Showing current filter results
@@ -55,9 +51,6 @@ export function EnquiriesStatsCards({ enquiries }: EnquiriesStatsCardsProps) {
             <CardTitle className="text-xl font-bold text-sky-400 mt-1">
               {unreadCount}
             </CardTitle>
-          </div>
-          <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-400">
-            <Clock className="w-4 h-4" />
           </div>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground">
@@ -77,9 +70,6 @@ export function EnquiriesStatsCards({ enquiries }: EnquiriesStatsCardsProps) {
               {contactedCount}
             </CardTitle>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
-            <PhoneCall className="w-4 h-4" />
-          </div>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground">
           Prospects contacted
@@ -95,9 +85,6 @@ export function EnquiriesStatsCards({ enquiries }: EnquiriesStatsCardsProps) {
             <CardTitle className="text-xl font-bold text-emerald-400 mt-1">
               {convertedCount}
             </CardTitle>
-          </div>
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-            <CheckCircle2 className="w-4 h-4" />
           </div>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground">

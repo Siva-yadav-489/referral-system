@@ -16,25 +16,22 @@ import {
 } from "@/app/actions/billing/billing.types";
 import { Property } from "@/app/actions/property/property.types";
 import { BillingStatsCards } from "./billing-stats-cards";
-import { BillingFilterToolbar } from "./billing-filter-toolbar";
+import { FilterToolbar, StatusFilterTabs } from "../filter-toolbar";
 import { InvoiceCard } from "./invoice-card";
 import { z } from "zod";
 import { PageHeader } from "../page-header";
+import { getMonth, getYear } from "date-fns";
 
 type InvoiceFilter = z.infer<typeof zodGetInvoicesFilterSchema>;
 
 interface BillingClientProps {
   initialInvoices: InvoiceWithDetails[];
   properties: Property[];
-  initialMonth: number;
-  initialYear: number;
 }
 
 export function BillingClient({
   initialInvoices,
   properties,
-  initialMonth,
-  initialYear,
 }: BillingClientProps) {
   const [invoices, setInvoices] =
     useState<InvoiceWithDetails[]>(initialInvoices);
@@ -45,12 +42,27 @@ export function BillingClient({
   );
 
   // Filter States
-  const [selectedMonth, setSelectedMonth] = useState<number>(initialMonth);
-  const [selectedYear, setSelectedYear] = useState<number>(initialYear);
-  const [useMonthFilter, setUseMonthFilter] = useState<boolean>(true);
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    getMonth(new Date()) + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(getYear(new Date()));
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const buildHighLevelFilter = (): InvoiceFilter => {
+    const filter: InvoiceFilter = {};
+    if (selectedYear != null) {
+      filter.year = selectedYear;
+    }
+    if (selectedMonth != null) {
+      filter.month = selectedMonth;
+    }
+    if (propertyFilter !== "ALL") {
+      filter.propertyId = propertyFilter;
+    }
+    return filter;
+  };
 
   const fetchInvoices = async (filter: InvoiceFilter) => {
     const load = async () => {
@@ -66,19 +78,9 @@ export function BillingClient({
     void load();
   };
 
-  // Re-fetch when server-side filters change
+  // Re-fetch when high-level filters change (status stays client-side)
   useEffect(() => {
-    const filter: InvoiceFilter = {};
-    if (useMonthFilter) {
-      filter.month = selectedMonth;
-      filter.year = selectedYear;
-    }
-    if (statusFilter !== "ALL") {
-      filter.status = statusFilter as "PENDING" | "PAID" | "OVERDUE";
-    }
-    if (propertyFilter !== "ALL") {
-      filter.propertyId = propertyFilter;
-    }
+    const filter = buildHighLevelFilter();
 
     const load = async () => {
       setLoading(true);
@@ -91,27 +93,10 @@ export function BillingClient({
       setLoading(false);
     };
     void load();
-  }, [
-    selectedMonth,
-    selectedYear,
-    useMonthFilter,
-    statusFilter,
-    propertyFilter,
-  ]);
+  }, [selectedMonth, selectedYear, propertyFilter]);
 
   const handleRefresh = () => {
-    const filter: InvoiceFilter = {};
-    if (useMonthFilter) {
-      filter.month = selectedMonth;
-      filter.year = selectedYear;
-    }
-    if (statusFilter !== "ALL") {
-      filter.status = statusFilter as "PENDING" | "PAID" | "OVERDUE";
-    }
-    if (propertyFilter !== "ALL") {
-      filter.propertyId = propertyFilter;
-    }
-    fetchInvoices(filter);
+    fetchInvoices(buildHighLevelFilter());
   };
 
   const handleGenerateMonthlyBills = async () => {
@@ -161,8 +146,7 @@ export function BillingClient({
     }
   };
 
-  // Client-side search filter (no round-trip needed)
-  const filteredInvoices = invoices.filter((inv) => {
+  const scopedInvoices = invoices.filter((inv) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const customerMatch = inv.booking?.customer?.name
@@ -172,6 +156,10 @@ export function BillingClient({
     const bedMatch = inv.booking?.bed?.bedNumber?.toLowerCase().includes(q);
     return customerMatch || phoneMatch || bedMatch;
   });
+
+  const filteredInvoices = scopedInvoices.filter(
+    (inv) => statusFilter === "ALL" || inv.status === statusFilter,
+  );
 
   return (
     <div className="flex flex-1 flex-col p-4 md:p-6 w-full">
@@ -211,24 +199,25 @@ export function BillingClient({
           </div>
         </PageHeader>
 
-        {/* Summary Stats Cards */}
-        <BillingStatsCards invoices={filteredInvoices} />
-
-        {/* Filter Toolbar */}
-        <BillingFilterToolbar
+        <FilterToolbar
           properties={properties}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
-          useMonthFilter={useMonthFilter}
-          statusFilter={statusFilter}
           propertyFilter={propertyFilter}
           searchQuery={searchQuery}
+          searchPlaceholder="Search tenant or bed..."
           onMonthChange={setSelectedMonth}
           onYearChange={setSelectedYear}
-          onToggleMonthFilter={() => setUseMonthFilter((v) => !v)}
-          onStatusChange={setStatusFilter}
           onPropertyChange={setPropertyFilter}
           onSearchChange={setSearchQuery}
+        />
+
+        <BillingStatsCards invoices={scopedInvoices} />
+
+        <StatusFilterTabs
+          statusFilter={statusFilter}
+          statusTabs={["ALL", "PENDING", "PAID", "OVERDUE"]}
+          onStatusChange={setStatusFilter}
         />
 
         {/* Invoices List */}
