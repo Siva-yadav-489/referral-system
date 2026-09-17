@@ -100,8 +100,12 @@ export async function getDashboardStatsAction() {
         totalBookingsCount: allBookings.length,
         pendingAmount,
         collectedAmount,
-        recentBookings: allBookings.slice(0, 5),
-        recentInvoices: invoices.slice(0, 5),
+        recentBookings: allBookings
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 5),
+        recentInvoices: invoices
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 5),
       },
     };
   } catch (error) {
@@ -469,7 +473,9 @@ export async function getReferralLeadsAction(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to load referral leads",
+        error instanceof Error
+          ? error.message
+          : "Failed to load referral leads",
     };
   }
 }
